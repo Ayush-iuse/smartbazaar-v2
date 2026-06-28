@@ -1,0 +1,41 @@
+# Exclude virtual environments and python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.pytest_cache/
+.coverage
+
+# Exclude local databases
+*.sqlite3
+*.db
+db/
+data/
+
+# Exclude Node.js dependencies and builds
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Exclude configuration templates
+.git/
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+README.md
+specify/
+plan/
+tasks/
+docs/
+.specify/
+.agents/
+AGENTS.md
+constitution.md
+deploy-guide.md
+*.log
