@@ -29,8 +29,8 @@ services:
       - "8000:8000"
     environment:
       - PORT=8000
-      - DATABASE_URL=postgresql+psycopg://postgres:smartbazaar010405@db.hzonllawscqnjalxrnvo.supabase.co:5432/postgres?sslmode=require
-      - DB_SSL_MODE=require
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres_secure_pass@db:5432/smartbazaar
+      - DB_SSL_MODE=prefer
       - REDIS_URL=${REDIS_URL:-}
       - REDIS_HOST=${REDIS_HOST:-}
       - JWT_SECRET=${JWT_SECRET:-supersecretkeychangeinproduction12345!}
