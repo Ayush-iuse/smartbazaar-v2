@@ -230,12 +230,24 @@ async def upload_chat_media(
 
     file_ext = os.path.splitext(file.filename)[1]
     unique_filename = f"{uuid.uuid4()}{file_ext}"
-    file_path = os.path.join(UPLOAD_DIR, unique_filename)
     
-    with open(file_path, "wb") as buffer:
-        buffer.write(content)
-        
-    media_url = f"/uploads/chat/{unique_filename}"
+    # Attempt to upload to Cloudinary
+    media_url = None
+    try:
+        from backend.app.utils.cloudinary import upload_to_cloudinary
+        # Cloudinary expects resource_type="video" for audio files
+        res_type = "image" if message_type == "image" else "video" if message_type == "voice" else "auto"
+        media_url = upload_to_cloudinary(content, unique_filename, resource_type=res_type)
+    except Exception as e:
+        logger.error(f"Failed uploading to Cloudinary: {e}. Falling back to local storage.")
+        media_url = None
+
+    # Fallback to local storage if Cloudinary is not configured or fails
+    if not media_url:
+        file_path = os.path.join(UPLOAD_DIR, unique_filename)
+        with open(file_path, "wb") as buffer:
+            buffer.write(content)
+        media_url = f"/uploads/chat/{unique_filename}"
     
     msg = MessageService.send_message(
         db=db,
@@ -247,6 +259,7 @@ async def upload_chat_media(
     )
     await broadcast_new_message(db, conversation_id, msg)
     return msg
+
 
 @router.websocket("/ws")
 async def chat_websocket_endpoint(

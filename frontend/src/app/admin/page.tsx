@@ -617,7 +617,12 @@ export default function AdminDashboard() {
                             <td className="p-4">
                               {v.document_path ? (
                                 <a 
-                                  href={`http://localhost:8000/${v.document_path}`} 
+                                  href={
+                                    v.document_path.startsWith('http')
+                                      ? v.document_path
+                                      : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${v.document_path.startsWith('/') ? '' : '/'}${v.document_path}`
+                                  }
+
                                   target="_blank" 
                                   rel="noopener noreferrer"
                                   className="text-primary hover:underline font-medium inline-flex items-center gap-1"

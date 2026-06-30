@@ -9,13 +9,27 @@ on:
 jobs:
   backend-tests:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_secure_pass
+          POSTGRES_DB: smartbazaar
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
-          python-python-version: "3.10"
+          python-version: "3.10"
           cache: "pip"
 
       - name: Install dependencies
@@ -24,6 +38,9 @@ jobs:
           pip install -r backend/requirements.txt
 
       - name: Run backend tests
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres_secure_pass@localhost:5432/smartbazaar
+          APP_ENV: testing
         run: |
           pytest backend/tests/ -v
 

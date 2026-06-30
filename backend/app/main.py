@@ -28,13 +28,51 @@ from backend.app.models.copilot import CopilotSession, CopilotMessage, CopilotMe
 from backend.app.models.enterprise import SystemSetting, Report, Notification, SavedSearch, PriceWatch, AuditLog, BackgroundJob, LoginHistory
 
 from contextlib import asynccontextmanager
+import logging
+from sqlalchemy import text
+
+logger = logging.getLogger("uvicorn")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     os.makedirs("uploads/chat", exist_ok=True)
     os.makedirs("uploads/listings", exist_ok=True)
     os.makedirs("uploads/verification", exist_ok=True)
-    Base.metadata.create_all(bind=engine)
+    
+    # Verify database connection on startup with retry logic
+    db_reachable = False
+    max_retries = 3
+    retry_delay = 2
+    for attempt in range(1, max_retries + 1):
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            db_reachable = True
+            logger.info("Database connection validated successfully.")
+            break
+        except Exception as e:
+            logger.warning(
+                f"Database connection attempt {attempt} failed: {e}. Retrying in {retry_delay}s..."
+            )
+            import time
+            time.sleep(retry_delay)
+            
+    if not db_reachable:
+        logger.critical(
+            "CRITICAL: Database is unreachable. Booting application in degraded mode."
+        )
+    else:
+        try:
+            logger.info("Running database migrations via Alembic...")
+            from alembic.config import Config
+            from alembic import command
+            alembic_ini_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../alembic.ini"))
+            alembic_cfg = Config(alembic_ini_path)
+            command.upgrade(alembic_cfg, "head")
+            logger.info("Database migrations applied successfully.")
+        except Exception as e:
+            logger.critical(f"Failed to run database migrations: {e}")
+
     import asyncio
     asyncio.create_task(JobService.run_worker())
     yield
@@ -49,19 +87,18 @@ app = FastAPI(
 # CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 app.add_middleware(TelemetryMiddleware)
 
+
 # Serve upload files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-@app.get("/health", tags=["System"])
-def health_check():
-    return {"status": "healthy", "version": "1.0.0"}
+
 
 # Register route modules under /api prefix
 app.include_router(auth.router, prefix="/api")

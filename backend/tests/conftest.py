@@ -1,3 +1,6 @@
+import os
+os.environ["APP_ENV"] = "testing"
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -9,10 +12,21 @@ from backend.app.utils.jwt import create_access_token
 from backend.app.models.user import User
 from backend.app.models.listing import Listing
 
-# Use separate SQLite test database
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+# Use PostgreSQL for testing to isolate and remove SQLite completely
+# If a specific TEST_DATABASE_URL is provided in env, use that, otherwise default to local Postgres
+from backend.app.database import sanitize_db_url
+SQLALCHEMY_DATABASE_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    "postgresql+psycopg://postgres:postgres_secure_pass@localhost:5432/smartbazaar"
+)
+SQLALCHEMY_DATABASE_URL = sanitize_db_url(SQLALCHEMY_DATABASE_URL)
+
+is_sqlite_test = SQLALCHEMY_DATABASE_URL.startswith("sqlite")
+connect_args = {"check_same_thread": False} if is_sqlite_test else {"connect_timeout": 10}
+
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL,
+    connect_args=connect_args
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

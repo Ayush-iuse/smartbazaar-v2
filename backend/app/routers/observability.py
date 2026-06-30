@@ -44,13 +44,61 @@ class TelemetryMiddleware(BaseHTTPMiddleware):
             metrics_store["status_codes"]["500"] = metrics_store["status_codes"].get("500", 0) + 1
             raise e
 
+@router.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "version": "2.0.0"
+    }
+
 @router.get("/ready")
 def ready_check(db: Session = Depends(get_db)):
+    ready_status = "ready"
+    db_status = "connected"
+    redis_status = "connected"
+    workers_status = "running"
+    
+    # 1. Validate Database connection
     try:
         db.execute(text("SELECT 1"))
-        return {"status": "ready", "database": "connected"}
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Database connection error: {str(e)}")
+        ready_status = "not_ready"
+        db_status = f"disconnected: {e}"
+        
+    # 2. Validate Redis connection
+    from backend.app.core.redis import redis_client
+    try:
+        if redis_client.ping():
+            redis_status = "connected"
+        else:
+            redis_status = "disconnected"
+    except Exception as e:
+        ready_status = "not_ready"
+        redis_status = f"disconnected: {e}"
+        
+    if ready_status == "not_ready":
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": ready_status,
+                "database": db_status,
+                "redis": redis_status,
+                "workers": workers_status,
+                "version": "2.0.0"
+            }
+        )
+        
+    return {
+        "status": ready_status,
+        "database": db_status,
+        "redis": redis_status,
+        "workers": workers_status,
+        "version": "2.0.0"
+    }
+
+@router.get("/version")
+def version_check():
+    return {"version": "2.0.0"}
 
 @router.get("/metrics")
 def metrics_endpoint():

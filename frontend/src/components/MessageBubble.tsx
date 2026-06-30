@@ -12,6 +12,14 @@ export default function MessageBubble({ msg, isSelf, onReact }: MessageBubblePro
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const validEmojis = ["👍", "❤️", "🔥", "😂", "👀"];
 
+  const getMediaUrl = (url?: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    return `${cleanBase}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
   // Parse reactions if stored as JSON string or array of strings
   let parsedReactions: string[] = [];
   try {
@@ -79,10 +87,10 @@ export default function MessageBubble({ msg, isSelf, onReact }: MessageBubblePro
             <div className="rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 max-w-xs cursor-pointer">
               {/* Note: Absolute paths from backend upload mount /uploads */}
               <img
-                src={msg.media_url.startsWith('http') ? msg.media_url : `http://localhost:8000${msg.media_url}`}
+                src={getMediaUrl(msg.media_url)}
                 alt="Attachment image"
                 className="max-h-48 object-cover w-full hover:scale-[1.02] transition-transform duration-200"
-                onClick={() => window.open(msg.media_url?.startsWith('http') ? msg.media_url : `http://localhost:8000${msg.media_url}`, '_blank')}
+                onClick={() => window.open(getMediaUrl(msg.media_url), '_blank')}
               />
             </div>
           )}
@@ -91,11 +99,12 @@ export default function MessageBubble({ msg, isSelf, onReact }: MessageBubblePro
             <div className="flex items-center gap-2 p-1 max-w-xs">
               <audio
                 controls
-                src={msg.media_url.startsWith('http') ? msg.media_url : `http://localhost:8000${msg.media_url}`}
+                src={getMediaUrl(msg.media_url)}
                 className="w-48 h-8 rounded text-slate-800"
               />
             </div>
           )}
+
 
           {msg.message_type === 'system' && (
             <p className="italic text-slate-400 dark:text-slate-500 text-[11px] text-center w-full">

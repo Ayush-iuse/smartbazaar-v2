@@ -92,19 +92,53 @@ class InMemoryRedis:
         # Pub/sub matches are mocked locally
         return 0
 
+    def ping(self) -> bool:
+        return True
+
 # Initialize client
 redis_client = None
 
 try:
     import redis
+    # Prefer REDIS_URL (which contains connection strings including TLS for Upstash)
+    redis_url = os.getenv("REDIS_URL")
     redis_host = os.getenv("REDIS_HOST")
-    if redis_host:
-        redis_client = redis.Redis(host=redis_host, port=6379, db=0, decode_responses=True)
+    
+    if redis_url:
+        logger.info("Connecting to Redis via REDIS_URL...")
+        ssl_opts = {}
+        if redis_url.startswith("rediss://"):
+            ssl_opts = {"ssl_cert_reqs": None}  # standard for Upstash/Railway TLS
+        
+        # Configure socket connection timeout and retry logic
+        redis_client = redis.Redis.from_url(
+            redis_url,
+            decode_responses=True,
+            socket_timeout=5.0,
+            socket_connect_timeout=5.0,
+            retry_on_timeout=True,
+            **ssl_opts
+        )
         redis_client.ping()
-        logger.info("Connected to Redis container successfully.")
-except Exception:
-    pass
+        logger.info("Connected to Cloud Redis successfully.")
+    elif redis_host:
+        logger.info("Connecting to Redis via REDIS_HOST...")
+        redis_client = redis.Redis(
+            host=redis_host,
+            port=6379,
+            db=0,
+            decode_responses=True,
+            socket_timeout=5.0,
+            socket_connect_timeout=5.0,
+            retry_on_timeout=True
+        )
+        redis_client.ping()
+        logger.info("Connected to Local Redis successfully.")
+except Exception as e:
+    logger.warning(f"Could not connect to Redis server: {e}. Falling back to InMemoryRedis.")
+    redis_client = None
 
 if redis_client is None:
     logger.info("Using InMemoryRedis client fallback.")
     redis_client = InMemoryRedis()
+

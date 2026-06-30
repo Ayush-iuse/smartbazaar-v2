@@ -71,11 +71,20 @@ interface ChatState {
 }
 
 const getWsUrl = (token: string) => {
+  const wsUrlEnv = process.env.NEXT_PUBLIC_WS_URL;
+  if (wsUrlEnv) {
+    const cleanWsUrl = wsUrlEnv.endsWith('/') ? wsUrlEnv.slice(0, -1) : wsUrlEnv;
+    if (cleanWsUrl.includes('/ws')) {
+      return `${cleanWsUrl}${cleanWsUrl.includes('?') ? '&' : '?'}token=${token}`;
+    }
+    return `${cleanWsUrl}/api/v2/chat/ws?token=${token}`;
+  }
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const wsProtocol = baseUrl.startsWith('https') ? 'wss:' : 'ws:';
   const host = baseUrl.replace(/^https?:\/\//, '');
   return `${wsProtocol}//${host}/api/v2/chat/ws?token=${token}`;
 };
+
 
 export const useChatStore = create<ChatState>((set, get) => {
   let pingInterval: any = null;

@@ -7,10 +7,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    volumes:
-      - backend_sqlite:/workspace/data
     environment:
-      - DATABASE_URL=sqlite:////workspace/data/db.sqlite3
+      - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET:-supersecretkeychangeinproduction12345!}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     restart: always
@@ -26,6 +24,3 @@ services:
     depends_on:
       - backend
     restart: always
-
-volumes:
-  backend_sqlite:

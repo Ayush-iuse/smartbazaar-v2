@@ -31,6 +31,18 @@ def test_scoring_weights_and_calculations(db_session: Session):
     db_session.add(seller)
     db_session.commit()
 
+    # Setup test listing
+    from backend.app.models.listing import Listing
+    listing = Listing(
+        title="Test Item",
+        price=100.0,
+        category="Electronics",
+        location="Delhi",
+        seller_id=seller.id
+    )
+    db_session.add(listing)
+    db_session.commit()
+
     # Verify completed deals scoring
     assert TrustScoreService.calculate_completed_deal_score(0) == 0
     assert TrustScoreService.calculate_completed_deal_score(1) == 10
@@ -41,8 +53,8 @@ def test_scoring_weights_and_calculations(db_session: Session):
     assert TrustScoreService.calculate_offer_reliability_score(db_session, buyer.id) == 20  # 20 default
     
     # Add offers
-    offer1 = Offer(listing_id=1, buyer_id=buyer.id, seller_id=seller.id, offer_amount=100.0, status="Accepted")
-    offer2 = Offer(listing_id=1, buyer_id=buyer.id, seller_id=seller.id, offer_amount=100.0, status="Rejected")
+    offer1 = Offer(listing_id=listing.id, buyer_id=buyer.id, seller_id=seller.id, offer_amount=100.0, status="Accepted")
+    offer2 = Offer(listing_id=listing.id, buyer_id=buyer.id, seller_id=seller.id, offer_amount=100.0, status="Rejected")
     db_session.add_all([offer1, offer2])
     db_session.commit()
     # reliability = 1/2 = 50% -> should be 12 points

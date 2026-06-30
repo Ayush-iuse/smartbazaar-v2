@@ -57,9 +57,10 @@ class AnalyticsService:
         for i in range(6, -1, -1):
             d = today - timedelta(days=i)
             d_str = d.strftime("%Y-%m-%d")
-            # Query count of listings created on date d in SQLite
+            # Query count of listings created on date d
+            from sqlalchemy import cast, Date
             cnt = db.query(Listing).filter(
-                func.strftime("%Y-%m-%d", Listing.created_at) == d_str
+                cast(Listing.created_at, Date) == d
             ).count()
             daily_trends.append({
                 "date": d_str,

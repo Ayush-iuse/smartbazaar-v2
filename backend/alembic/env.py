@@ -56,7 +56,44 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # Override the database URL dynamically using the settings configuration
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+db_url = settings.DATABASE_URL
+if not db_url:
+    raise ValueError("DATABASE_URL environment variable is required for migrations.")
+
+import urllib.parse
+
+def sanitize_db_url(url: str) -> str:
+    if not url:
+        return url
+    if "://" not in url:
+        return url
+    scheme, rest = url.split("://", 1)
+    if scheme in ("postgres", "postgresql"):
+        scheme = "postgresql+psycopg"
+    if "@" not in rest:
+        return f"{scheme}://{rest}"
+    creds, host_part = rest.rsplit("@", 1)
+    if ":" in creds:
+        username, password = creds.split(":", 1)
+        if "%" not in password:
+            password = urllib.parse.quote_plus(password)
+        creds = f"{username}:{password}"
+    final_url = f"{scheme}://{creds}@{host_part}"
+    ssl_mode = os.getenv("DB_SSL_MODE", "require")
+    if "localhost" in host_part or "127.0.0.1" in host_part:
+        ssl_mode = os.getenv("DB_SSL_MODE", "prefer")
+    if "?" in host_part:
+        if "sslmode=" not in host_part:
+            final_url += f"&sslmode={ssl_mode}"
+    else:
+        final_url += f"?sslmode={ssl_mode}"
+    return final_url
+
+db_url = sanitize_db_url(db_url)
+
+# Escape % characters for configparser interpolation compatibility
+config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.

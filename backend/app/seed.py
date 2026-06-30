@@ -36,25 +36,44 @@ from backend.app.models.buyer_timeline import BuyerTimeline
 from backend.app.models.risk_score import RiskScore
 
 def seed_database():
-    print("Re-initializing tables...")
-    if engine.url.drivername.startswith("postgresql"):
-        from sqlalchemy import text
-        db = SessionLocal()
-        try:
-            db.execute(text("DROP SCHEMA public CASCADE;"))
-            db.execute(text("CREATE SCHEMA public;"))
-            db.execute(text("GRANT ALL ON SCHEMA public TO public;"))
-            db.commit()
-        except Exception as e:
-            print(f"Postgres schema drop failed: {e}")
-            db.rollback()
-        finally:
-            db.close()
-    else:
-        Base.metadata.drop_all(bind=engine)
-        
-    Base.metadata.create_all(bind=engine)
+    # If production environment or Supabase database detected, skip schema teardown and verify if data exists
+    is_production = (
+        os.getenv("APP_ENV") == "production"
+        or "supabase.co" in str(engine.url)
+    )
     
+    db = SessionLocal()
+    try:
+        if is_production:
+            print("Production environment or remote Supabase DB detected. Skipping database teardown.")
+            try:
+                user_count = db.query(User).count()
+                if user_count > 0:
+                    print(f"Database already contains {user_count} users. Skipping seeding to prevent overwriting production data.")
+                    return
+            except Exception as e:
+                print(f"Checking for existing database data: {e}")
+                print("Tables might not exist yet. Please run backend startup first to apply migrations.")
+                return
+        else:
+            print("Re-initializing tables...")
+            if engine.url.drivername.startswith("postgresql"):
+                from sqlalchemy import text
+                try:
+                    db.execute(text("DROP SCHEMA public CASCADE;"))
+                    db.execute(text("CREATE SCHEMA public;"))
+                    db.execute(text("GRANT ALL ON SCHEMA public TO public;"))
+                    db.commit()
+                except Exception as e:
+                    print(f"Postgres schema drop failed: {e}")
+                    db.rollback()
+            else:
+                Base.metadata.drop_all(bind=engine)
+            
+            Base.metadata.create_all(bind=engine)
+    finally:
+        db.close()
+        
     db = SessionLocal()
     try:
         print("Seeding Users...")
