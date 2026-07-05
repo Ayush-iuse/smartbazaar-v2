@@ -100,3 +100,18 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     }
   }
 }));
+
+export interface OfflineState {
+  isOffline: boolean;
+  setIsOffline: (isOffline: boolean) => void;
+}
+
+export const useOfflineStore = create<OfflineState>((set) => ({
+  isOffline: false,
+  setIsOffline: (isOffline) => {
+    if (typeof window !== 'undefined') {
+      (window as any).__OFFLINE_MODE__ = isOffline;
+    }
+    set({ isOffline });
+  },
+}));

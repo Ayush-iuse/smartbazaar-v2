@@ -30,6 +30,33 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router]);
 
+  const handleOfflineBypass = () => {
+    setIsLoading(true);
+    setError(null);
+    setSuccess('Authentication bypassed. Redirecting to demo workspace...');
+    
+    // Import and set global offline store status
+    try {
+      const { useOfflineStore } = require('../../lib/store');
+      useOfflineStore.getState().setIsOffline(true);
+    } catch (e) {
+      console.error(e);
+    }
+
+    setTimeout(() => {
+      login("mock-token-12345", {
+        id: 999,
+        email: "demo@smartbazaar.ai",
+        full_name: "Demo Seller & Buyer",
+        phone: "+91 99999 99999",
+        is_admin: true,
+        is_suspended: false,
+        created_at: new Date().toISOString()
+      });
+      router.push('/dashboard');
+    }, 1000);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -38,7 +65,6 @@ export default function LoginPage() {
 
     try {
       if (activeTab === 'login') {
-        // OAuth2 Password Request Form requires x-www-form-urlencoded
         const formData = new URLSearchParams();
         formData.append('username', email);
         formData.append('password', password);
@@ -50,14 +76,9 @@ export default function LoginPage() {
         });
 
         const { access_token } = loginRes.data;
-
-        // Set token in localStorage temporarily so the subsequent request gets it
         localStorage.setItem('sb_auth_token', access_token);
-
-        // Fetch user information
         const userRes = await api.get('/api/auth/me');
         
-        // Save to Zustand state store
         login(access_token, userRes.data);
         
         setSuccess('Login successful! Redirecting...');
@@ -65,7 +86,6 @@ export default function LoginPage() {
           router.push('/dashboard');
         }, 1000);
       } else {
-        // Register API expects JSON UserCreate body
         await api.post('/api/auth/register', {
           email,
           password,
@@ -77,12 +97,18 @@ export default function LoginPage() {
         setPassword('');
       }
     } catch (err: any) {
-      console.error(err);
-      setError(
-        err.response?.data?.detail || 
-        'An error occurred during authentication. Please check your credentials.'
-      );
-      // Clean up temp token if failed
+      console.error('Authentication Error:', err);
+      
+      const isNetworkError = !err.response || err.code === 'ERR_NETWORK' || err.message === 'Network Error' || err.code === 'ECONNABORTED';
+      if (isNetworkError) {
+        setError("Authentication service is temporarily unavailable.");
+      } else {
+        setError(
+          err.response?.data?.detail || 
+          'An error occurred during authentication. Please check your credentials.'
+        );
+      }
+      
       if (activeTab === 'login') {
         localStorage.removeItem('sb_auth_token');
       }
@@ -207,6 +233,23 @@ export default function LoginPage() {
             className="w-full h-11 uppercase tracking-wider"
           >
             {isLoading ? 'Processing...' : activeTab === 'login' ? 'Sign In' : 'Create Account'}
+          </Button>
+
+          {/* Offline Bypass Action */}
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-border/60"></div>
+            <span className="flex-shrink mx-4 text-[10px] text-muted-foreground uppercase font-black tracking-widest">Or Sandbox</span>
+            <div className="flex-grow border-t border-border/60"></div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleOfflineBypass}
+            disabled={isLoading}
+            className="w-full h-11 border-dashed hover:bg-muted text-[10px] font-black uppercase tracking-widest"
+          >
+            Explore Offline Demo Workspace
           </Button>
         </form>
       </Card>

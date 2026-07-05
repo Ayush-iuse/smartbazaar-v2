@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import api from '../lib/api';
+import { useOfflineStore } from '../lib/store';
 import ListingCard, { Listing } from '../components/ListingCard';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -53,6 +54,8 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [searchVal, setSearchVal] = useState('');
 
+  const { isOffline } = useOfflineStore();
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -75,7 +78,7 @@ export default function HomePage() {
         setError(null);
       } catch (err: any) {
         console.error('Failed to load home page listings:', err);
-        setError('Could not establish connection with backend. Make sure database is seeded.');
+        setError('Backend is currently unavailable.');
       } finally {
         setIsLoading(false);
       }
@@ -97,6 +100,12 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-20 pb-20 bg-background text-foreground transition-colors duration-200">
       
+      {isOffline && (
+        <div className="w-full bg-amber-500 text-slate-950 font-black text-center py-2.5 text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 px-4 shadow-sm z-30">
+          <ShieldAlert className="w-4 h-4" />
+          <span>Backend is currently unavailable. Running in Offline Mock Sandbox Mode.</span>
+        </div>
+      )}
       {/* 1. HERO SECTION */}
       <section className="relative overflow-hidden pt-20 pb-16 border-b border-border bg-gradient-to-b from-primary/5 via-transparent to-transparent">
         

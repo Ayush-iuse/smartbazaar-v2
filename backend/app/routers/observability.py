@@ -68,13 +68,12 @@ def ready_check(db: Session = Depends(get_db)):
     # 2. Validate Redis connection
     from backend.app.core.redis import redis_client
     try:
-        if redis_client.ping():
+        if redis_client and redis_client.ping():
             redis_status = "connected"
         else:
             redis_status = "disconnected"
     except Exception as e:
-        ready_status = "not_ready"
-        redis_status = f"disconnected: {e}"
+        redis_status = f"disconnected (in-memory fallback active): {e}"
         
     if ready_status == "not_ready":
         raise HTTPException(

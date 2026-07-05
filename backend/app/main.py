@@ -10,8 +10,12 @@ from backend.app.routers import auth, listings, search, messages, ai, analytics,
 from backend.app.routers.observability import TelemetryMiddleware
 from backend.app.services.job_service import JobService
 from backend.app.config import settings
-
-# Import UserPresence model so it is auto-created
+# Import all models to ensure they are registered in the Base.metadata
+from backend.app.models.user import User
+from backend.app.models.listing import Listing
+from backend.app.models.offer import Offer
+from backend.app.models.conversation import Conversation
+from backend.app.models.message import Message
 from backend.app.models.online_status import UserPresence
 from backend.app.models.buyer_trust_score import BuyerTrustScore
 from backend.app.models.buyer_trust_event import BuyerTrustEvent

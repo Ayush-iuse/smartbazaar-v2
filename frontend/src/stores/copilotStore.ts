@@ -114,6 +114,25 @@ export const useCopilotStore = create<CopilotState>((set, get) => ({
     
     set({ messages: [...messages, tempUserMsg], sending: true, error: null });
     
+    // Check if offline/standalone mode is active
+    try {
+      const { useOfflineStore } = require('../lib/store');
+      if (useOfflineStore.getState().isOffline) {
+        throw new Error('Offline mode shortcut');
+      }
+    } catch (e: any) {
+      if (e.message === 'Offline mode shortcut') {
+        setTimeout(() => {
+          set({ 
+            error: 'AI service currently unavailable.',
+            sending: false,
+            messages: get().messages.filter(m => m.id !== tempUserMsg.id)
+          });
+        }, 600);
+        return;
+      }
+    }
+    
     try {
       const res = await api.post('/api/copilot/chat', {
         session_id: activeSessionId,
@@ -140,7 +159,14 @@ export const useCopilotStore = create<CopilotState>((set, get) => ({
       await get().fetchMemory();
     } catch (err: any) {
       console.error('Failed to send message to copilot:', err);
-      set({ error: 'Failed to retrieve response from Copilot. Check if backend is available.' });
+      
+      const isNetwork = !err.response || err.code === 'ERR_NETWORK' || err.message === 'Network Error' || err.code === 'ECONNABORTED';
+      if (isNetwork) {
+        set({ error: 'AI service currently unavailable.' });
+      } else {
+        set({ error: err.response?.data?.detail || 'Failed to retrieve response from Copilot.' });
+      }
+      
       // Remove the optimistic message if send failed
       set({ messages: get().messages.filter(m => m.id !== tempUserMsg.id) });
     } finally {

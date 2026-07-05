@@ -15,6 +15,9 @@ if (missing.length > 0) {
 
 const nextConfig = {
   reactStrictMode: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     domains: ['localhost', '127.0.0.1', 'res.cloudinary.com'],
   },

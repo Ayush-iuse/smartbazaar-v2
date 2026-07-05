@@ -68,8 +68,8 @@ def sanitize_db_url(url: str) -> str:
     if "://" not in url:
         return url
     scheme, rest = url.split("://", 1)
-    if scheme in ("postgres", "postgresql"):
-        scheme = "postgresql+psycopg"
+    if scheme in ("postgres", "postgresql", "postgresql+psycopg"):
+        scheme = "postgresql+psycopg2"
     if "@" not in rest:
         return f"{scheme}://{rest}"
     creds, host_part = rest.rsplit("@", 1)

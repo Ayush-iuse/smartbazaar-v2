@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useOfflineStore } from '@/lib/store';
 import { useChatStore, ChatConversation } from '@/stores/chatStore';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ConversationInbox from '@/components/ConversationInbox';
@@ -29,6 +29,8 @@ function MessagesContent() {
     connectWs,
     disconnectWs,
   } = useChatStore();
+
+  const { isOffline } = useOfflineStore();
 
   const [initialLoaded, setInitialLoaded] = useState(false);
 
@@ -106,6 +108,13 @@ function MessagesContent() {
           Chat instantly with buyers and sellers. Upload photos or record audio notes directly in the browser.
         </p>
       </div>
+
+      {isOffline && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/25 rounded-xl text-amber-600 dark:text-amber-400 text-xs font-bold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          <span>Realtime messaging unavailable. Running in Offline Mock Mode.</span>
+        </div>
+      )}
 
       {error && (
         <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm font-medium flex items-center gap-2">

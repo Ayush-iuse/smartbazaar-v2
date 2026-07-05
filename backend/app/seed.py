@@ -70,7 +70,13 @@ def seed_database():
             else:
                 Base.metadata.drop_all(bind=engine)
             
-            Base.metadata.create_all(bind=engine)
+            # Apply migrations via Alembic to keep schema and alembic_version in sync
+            print("Running database migrations via Alembic...")
+            from alembic.config import Config
+            from alembic import command
+            alembic_ini_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../alembic.ini"))
+            alembic_cfg = Config(alembic_ini_path)
+            command.upgrade(alembic_cfg, "head")
     finally:
         db.close()
         

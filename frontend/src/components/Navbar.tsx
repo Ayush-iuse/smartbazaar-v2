@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore, useThemeStore } from '../lib/store';
 import { 
   ShoppingBag, PlusCircle, LogOut, LayoutDashboard, 
-  Sun, Moon, Laptop, BarChart3, Heart, MessageSquare, Tag, Bot, Search, Bell, ShieldAlert
+  Sun, Moon, Laptop, BarChart3, Heart, MessageSquare, Tag, Bot, Search, Bell, ShieldAlert, Settings
 } from 'lucide-react';
 import { Avatar } from './ui/Avatar';
 import { Dropdown, DropdownItem } from './ui/Dropdown';
@@ -62,6 +62,12 @@ export default function Navbar() {
       label: 'Seller Dashboard',
       onClick: () => router.push('/seller'),
       icon: <LayoutDashboard className="w-3.5 h-3.5" />
+    },
+    {
+      id: 'settings',
+      label: 'Account Settings',
+      onClick: () => router.push('/settings'),
+      icon: <Settings className="w-3.5 h-3.5" />
     },
     {
       id: 'logout',
@@ -173,6 +179,7 @@ export default function Navbar() {
 
               {/* Notification Alerts (mock) */}
               <button 
+                onClick={() => router.push('/notifications')}
                 className="p-2 text-muted-foreground hover:text-primary rounded-xl hover:bg-muted/80 transition-colors relative"
                 title="Notifications"
               >

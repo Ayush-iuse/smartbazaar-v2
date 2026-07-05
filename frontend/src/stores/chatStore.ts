@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import api from '../lib/api';
-import { useAuthStore } from '../lib/store';
+import { useAuthStore, useOfflineStore } from '../lib/store';
 
 const sortConversations = (convs: ChatConversation[]) => {
   const currentUser = useAuthStore.getState().user;
@@ -288,6 +288,11 @@ export const useChatStore = create<ChatState>((set, get) => {
     },
 
     connectWs: (token: string) => {
+      if (typeof window !== 'undefined' && ((window as any).__OFFLINE_MODE__ || useOfflineStore.getState().isOffline)) {
+        console.warn('Chat WebSocket connection skipped: running in offline/demo mode.');
+        set({ isConnected: false });
+        return;
+      }
       currentToken = token;
       const { ws } = get();
       if (ws) {
