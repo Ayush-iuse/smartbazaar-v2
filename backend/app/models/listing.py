@@ -18,6 +18,8 @@ class Listing(Base):
     fraud_level = Column(String, default="Low")
     status = Column(String, default="Active", nullable=False)  # Active, Sold
     is_featured = Column(Boolean, default=False)
+    allow_sale = Column(Boolean, default=True, nullable=False)
+    allow_rental = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

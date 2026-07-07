@@ -68,3 +68,16 @@ class AIBuyerAgentResponse(BaseModel):
     risk_level: str
     explanation: str
     is_fallback: bool
+
+class AIChatAssistantRequest(BaseModel):
+    conversation_id: int
+    query: str = Field(default="")
+
+class AIChatAssistantResponse(BaseModel):
+    reply_suggestions: List[str]
+    translation: str
+    scam_detected: bool
+    urgency_level: str
+    intent: str
+    next_action: str
+    is_fallback: bool

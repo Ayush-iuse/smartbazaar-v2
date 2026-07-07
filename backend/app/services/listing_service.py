@@ -12,8 +12,13 @@ from backend.app.utils.validation import sanitize_listing_input
 def get_listing(db: Session, listing_id: int) -> Optional[Listing]:
     return db.query(Listing).filter(Listing.id == listing_id).first()
 
-def get_listings(db: Session, skip: int = 0, limit: int = 20) -> List[Listing]:
-    return db.query(Listing).order_by(Listing.created_at.desc()).offset(skip).limit(limit).all()
+def get_listings(db: Session, skip: int = 0, limit: int = 20, allow_sale: Optional[bool] = None, allow_rental: Optional[bool] = None) -> List[Listing]:
+    q = db.query(Listing)
+    if allow_sale is not None:
+        q = q.filter(Listing.allow_sale == allow_sale)
+    if allow_rental is not None:
+        q = q.filter(Listing.allow_rental == allow_rental)
+    return q.order_by(Listing.created_at.desc()).offset(skip).limit(limit).all()
 
 def count_listings(db: Session) -> int:
     return db.query(Listing).count()
@@ -34,7 +39,9 @@ def create_listing(db: Session, listing_in: ListingCreate, seller_id: int) -> Li
         image_urls=json.dumps(listing_in.image_urls),
         seller_id=seller_id,
         fraud_score=fraud_score,
-        fraud_level=fraud_level
+        fraud_level=fraud_level,
+        allow_sale=listing_in.allow_sale,
+        allow_rental=listing_in.allow_rental
     )
     db.add(db_listing)
     db.flush()  # flush to get db_listing.id before creating ListingScore

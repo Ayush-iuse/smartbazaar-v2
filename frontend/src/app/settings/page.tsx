@@ -1,10 +1,13 @@
 'use client';
 
 import React from 'react';
+import { useTheme } from 'next-themes';
 import { Settings as SettingsIcon, AlertTriangle, Shield, Eye, Volume2 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 
 export default function SettingsPage() {
+  const { theme, setTheme } = useTheme();
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 flex flex-col gap-6 bg-background text-foreground min-h-screen">
       <div className="border-b border-border pb-4">
@@ -82,6 +85,27 @@ export default function SettingsPage() {
                 </div>
                 <div className="w-9 h-5 bg-primary/20 border border-primary/30 rounded-full p-0.5 cursor-not-allowed flex justify-end">
                   <div className="w-4 h-4 bg-primary rounded-full" />
+                </div>
+              </div>
+              <div className="flex justify-between items-center border-t border-border pt-4">
+                <div>
+                  <h4 className="text-xs font-bold">App Theme Preference</h4>
+                  <p className="text-[10px] text-muted-foreground">Select between Light, Dark, or System Sync theme.</p>
+                </div>
+                <div className="flex gap-1.5">
+                  {['light', 'dark', 'system'].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setTheme(t)}
+                      className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold uppercase transition-all duration-200 ${
+                        theme === t
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>

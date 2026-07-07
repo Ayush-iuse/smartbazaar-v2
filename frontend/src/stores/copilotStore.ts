@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import api from '../lib/api';
+import api, { formatError } from '../lib/api';
 
 export interface CopilotMessage {
   id: number;
@@ -164,7 +164,7 @@ export const useCopilotStore = create<CopilotState>((set, get) => ({
       if (isNetwork) {
         set({ error: 'AI service currently unavailable.' });
       } else {
-        set({ error: err.response?.data?.detail || 'Failed to retrieve response from Copilot.' });
+        set({ error: formatError(err) });
       }
       
       // Remove the optimistic message if send failed

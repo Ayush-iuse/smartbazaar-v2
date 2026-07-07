@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../lib/store';
-import api from '../../lib/api';
+import api, { formatError } from '../../lib/api';
 import { Sparkles, LogIn, UserPlus } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -23,10 +23,10 @@ export default function LoginPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // If already logged in, redirect to dashboard automatically
+  // Auto redirect if already logged in
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/dashboard');
+      router.push('/');
     }
   }, [isAuthenticated, router]);
 
@@ -103,10 +103,7 @@ export default function LoginPage() {
       if (isNetworkError) {
         setError("Authentication service is temporarily unavailable.");
       } else {
-        setError(
-          err.response?.data?.detail || 
-          'An error occurred during authentication. Please check your credentials.'
-        );
+        setError(formatError(err));
       }
       
       if (activeTab === 'login') {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChatMessage } from '../stores/chatStore';
-import { Check, CheckCheck, Smile } from 'lucide-react';
+import { Check, CheckCheck, Smile, MapPin, FileText, Calendar, User, Phone, CheckCircle2, ShieldAlert, Tag, Package, Download } from 'lucide-react';
 
 interface MessageBubbleProps {
   msg: ChatMessage;
@@ -105,6 +105,85 @@ export default function MessageBubble({ msg, isSelf, onReact }: MessageBubblePro
             </div>
           )}
 
+          {msg.message_type === 'location' && (
+            <div className="space-y-2 p-1 min-w-[180px]">
+              <div className="flex items-center gap-1.5 font-bold text-foreground">
+                <MapPin className="w-4 h-4 text-primary" />
+                <span>Location Shared</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-normal">{msg.content}</p>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(msg.content || '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-[10px] text-primary hover:underline font-bold mt-1"
+              >
+                View on Google Maps
+              </a>
+            </div>
+          )}
+
+          {msg.message_type === 'document' && (
+            <div className="flex items-center justify-between gap-3 p-1 min-w-[200px]">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold truncate max-w-[120px]">{msg.content || 'Document attachment'}</p>
+                  <p className="text-[9px] text-muted-foreground">PDF / Document File</p>
+                </div>
+              </div>
+              <a
+                href={getMediaUrl(msg.media_url)}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              >
+                <Download className="w-4 h-4" />
+              </a>
+            </div>
+          )}
+
+          {msg.message_type === 'offer' && (
+            <div className="space-y-3 p-1.5 border border-primary/20 bg-primary/5 rounded-xl min-w-[180px]">
+              <div className="flex items-center gap-1.5 font-bold text-foreground">
+                <Tag className="w-4 h-4 text-primary" />
+                <span>Interactive Price Offer</span>
+              </div>
+              <div className="flex items-baseline gap-1 font-mono">
+                <span className="text-lg font-black">₹{Number(msg.content || 0).toLocaleString('en-IN')}</span>
+                <span className="text-[9px] text-muted-foreground">INR</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                <span>Status: Pending review</span>
+              </div>
+            </div>
+          )}
+
+          {msg.message_type === 'delivery' && (
+            <div className="space-y-2 p-1 min-w-[180px]">
+              <div className="flex items-center gap-1.5 font-bold text-foreground">
+                <Package className="w-4 h-4 text-primary" />
+                <span>Logistics Details</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+            </div>
+          )}
+
+          {msg.message_type === 'contact' && (
+            <div className="space-y-2.5 p-1 min-w-[180px]">
+              <div className="flex items-center gap-1.5 font-bold text-foreground">
+                <User className="w-4 h-4 text-primary" />
+                <span>Contact Card</span>
+              </div>
+              <div className="space-y-1 text-[10px] text-muted-foreground">
+                <p className="font-bold text-foreground">Name: {msg.content?.split(',')[0] || 'Unknown'}</p>
+                <p className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> {msg.content?.split(',')[1] || ''}</p>
+              </div>
+            </div>
+          )}
 
           {msg.message_type === 'system' && (
             <p className="italic text-slate-400 dark:text-slate-500 text-[11px] text-center w-full">

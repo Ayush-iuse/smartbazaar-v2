@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import api from '../lib/api';
+import api, { formatError } from '../lib/api';
 import { useAuthStore, useOfflineStore } from '../lib/store';
 
 const sortConversations = (convs: ChatConversation[]) => {
@@ -60,8 +60,8 @@ interface ChatState {
   // Actions
   fetchConversations: (archived?: boolean, pinned?: boolean) => Promise<void>;
   selectConversation: (conv: ChatConversation | null) => Promise<void>;
-  sendMessage: (content: string) => void;
-  sendMediaMessage: (type: 'image' | 'voice', file: File) => Promise<void>;
+  sendMessage: (content: string, messageType?: string) => void;
+  sendMediaMessage: (type: 'image' | 'voice' | 'document', file: File) => Promise<void>;
   reactToMessage: (messageId: number, emoji: string) => Promise<void>;
   setTypingStatus: (isTyping: boolean) => void;
   togglePin: (conversationId: number, pin: boolean) => Promise<void>;
@@ -169,7 +169,7 @@ export const useChatStore = create<ChatState>((set, get) => {
       }
     },
 
-    sendMessage: (content: string) => {
+    sendMessage: (content: string, messageType: string = 'text') => {
       const { ws, activeConv } = get();
       if (!activeConv) return;
 
@@ -178,24 +178,25 @@ export const useChatStore = create<ChatState>((set, get) => {
           type: 'send_message',
           conversation_id: activeConv.id,
           content,
+          message_type: messageType
         }));
       } else {
         // Fallback to HTTP POST
         api.post(`/api/v2/chat/conversations/${activeConv.id}/messages`, {
           content,
-          message_type: 'text'
+          message_type: messageType
         }).then((res) => {
           set((state) => ({
             messages: [...state.messages, res.data],
           }));
         }).catch((err) => {
           console.error('HTTP Send fallback failed:', err);
-          alert(err.response?.data?.detail || 'Failed to send message.');
+          alert(formatError(err));
         });
       }
     },
 
-    sendMediaMessage: async (type: 'image' | 'voice', file: File) => {
+    sendMediaMessage: async (type: 'image' | 'voice' | 'document', file: File) => {
       const { activeConv } = get();
       if (!activeConv) return;
 
@@ -221,7 +222,7 @@ export const useChatStore = create<ChatState>((set, get) => {
         });
       } catch (err: any) {
         console.error('Media upload failed:', err);
-        alert(err.response?.data?.detail || 'Failed to send media file.');
+        alert(formatError(err));
       }
     },
 

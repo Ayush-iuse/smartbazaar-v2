@@ -55,6 +55,13 @@ module.exports = {
           900: '#7c2d12',
           950: '#431407',
         },
+        bazaar: {
+          ivory: '#faf8f5',
+          charcoal: '#121212',
+          terracotta: '#c2593f',
+          copper: '#d97d54',
+          forest: '#2d5a27',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

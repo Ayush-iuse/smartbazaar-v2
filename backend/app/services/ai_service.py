@@ -675,3 +675,117 @@ class AIService:
             logger.warning(f"OpenAI error in parse_search_query, falling back: {e}")
             
         return result
+
+    @staticmethod
+    def chat_assistant_analyze(db: Session, conversation_id: int, query: str = "") -> dict:
+        from backend.app.models.message import Message
+        
+        # 1. Fetch message history
+        messages = []
+        if db:
+            try:
+                messages = db.query(Message).filter(Message.conversation_id == conversation_id).order_by(Message.id.desc()).limit(5).all()
+                messages.reverse()
+            except Exception as e:
+                logger.error(f"Error querying message history: {e}")
+        
+        # 2. Extract conversation texts
+        chat_history = ""
+        last_msg_content = ""
+        for m in messages:
+            sender_label = "Sender" if m.sender_id else "Recipient"
+            chat_history += f"{sender_label}: {m.content}\n"
+            if m.content:
+                last_msg_content = m.content
+
+        # Fallback values
+        reply_suggestions = [
+            "Hi, is this item still available?",
+            "Can we negotiate the price?",
+            "Where can we meet for the pickup?",
+            "Yes, the item is clean and available!"
+        ]
+        
+        translation = last_msg_content
+        scam_detected = False
+        urgency_level = "Low"
+        intent = "General inquiry"
+        next_action = "Acknowledge the message and propose meeting spot."
+
+        # Quick local scans
+        text_lower = last_msg_content.lower()
+        if any(w in text_lower for w in SCAM_KEYWORDS):
+            scam_detected = True
+        
+        if any(w in text_lower for w in ["urgent", "today", "now", "fast", "hurry"]):
+            urgency_level = "High"
+            reply_suggestions = [
+                "I am available to meet today!",
+                "Can you share your location so we can wrap this up?",
+                "Okay, let me send the coordinates."
+            ]
+        
+        if any(w in text_lower for w in ["price", "discount", "cheap", "offer", "negotiate"]):
+            intent = "Price negotiation"
+            reply_suggestions = [
+                "I can offer a 10% discount.",
+                "How about we split the difference?",
+                "What is your best price?"
+            ]
+
+        result = {
+            "reply_suggestions": reply_suggestions,
+            "translation": translation,
+            "scam_detected": scam_detected,
+            "urgency_level": urgency_level,
+            "intent": intent,
+            "next_action": next_action,
+            "is_fallback": True
+        }
+
+        # 3. Optional OpenAI chat analysis
+        client = get_openai_client()
+        if not client:
+            return result
+
+        try:
+            prompt = (
+                f"Analyze this marketplace P2P chat history:\n{chat_history}\n"
+                "Return a JSON analysis object with these exact keys:\n"
+                "{\n"
+                "  \"reply_suggestions\": [\"option1\", \"option2\", \"option3\"],\n"
+                "  \"translation\": \"Translated text or empty if already English\",\n"
+                "  \"scam_detected\": false,\n"
+                "  \"urgency_level\": \"High/Medium/Low\",\n"
+                "  \"intent\": \"Brief description of sender's goal\",\n"
+                "  \"next_action\": \"Recommended action\"\n"
+                "}"
+            )
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a smart marketplace deal closing assistant. Output valid JSON only."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=250,
+                temperature=0.3
+            )
+            content = response.choices[0].message.content.strip()
+            if content.startswith("```"):
+                content = content.split("```")[1].strip()
+                if content.startswith("json"):
+                    content = content[4:].strip()
+            ai_data = json.loads(content)
+            
+            return {
+                "reply_suggestions": ai_data.get("reply_suggestions", reply_suggestions),
+                "translation": ai_data.get("translation", translation) or translation,
+                "scam_detected": bool(ai_data.get("scam_detected", scam_detected)),
+                "urgency_level": ai_data.get("urgency_level", urgency_level),
+                "intent": ai_data.get("intent", intent),
+                "next_action": ai_data.get("next_action", next_action),
+                "is_fallback": False
+            }
+        except Exception as e:
+            logger.warning(f"OpenAI error in chat_assistant_analyze: {e}")
+            return result

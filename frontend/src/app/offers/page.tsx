@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '../../lib/api';
+import api, { formatError } from '../../lib/api';
 import { useAuthStore } from '../../lib/store';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { AlertCircle, Tag, Check, X, Send, Inbox } from 'lucide-react';
@@ -58,7 +58,7 @@ export default function OffersPage() {
       fetchOffers();
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.detail || 'Failed to update offer status.');
+      alert(formatError(err));
     }
   };
 
@@ -70,7 +70,7 @@ export default function OffersPage() {
       fetchOffers();
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.detail || 'Failed to withdraw offer.');
+      alert(formatError(err));
     }
   };
 

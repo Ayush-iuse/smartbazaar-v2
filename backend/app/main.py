@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from backend.app.database import engine, Base
-from backend.app.routers import auth, listings, search, messages, ai, analytics, offers, wishlist, chat, trust, copilot, admin, notifications, saved_searches, price_watch, reports, observability
+from backend.app.routers import auth, listings, search, messages, ai, analytics, offers, wishlist, chat, trust, copilot, admin, notifications, saved_searches, price_watch, reports, observability, rental, booking, rental_analytics, ai_commerce, business
 from backend.app.routers.observability import TelemetryMiddleware
 from backend.app.services.job_service import JobService
 from backend.app.config import settings
@@ -30,6 +30,7 @@ from backend.app.models.buyer_timeline import BuyerTimeline
 from backend.app.models.risk_score import RiskScore
 from backend.app.models.copilot import CopilotSession, CopilotMessage, CopilotMemory, CopilotAction
 from backend.app.models.enterprise import SystemSetting, Report, Notification, SavedSearch, PriceWatch, AuditLog, BackgroundJob, LoginHistory
+from backend.app.models.rental import RentalListing, RentalBooking, RentalCalendar, RentalContract, RentalDeposit, RentalReturn
 
 from contextlib import asynccontextmanager
 import logging
@@ -125,5 +126,10 @@ app.include_router(notifications.router, prefix="/api")
 app.include_router(saved_searches.router, prefix="/api")
 app.include_router(price_watch.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
+app.include_router(rental.router, prefix="/api")
+app.include_router(booking.router, prefix="/api")
+app.include_router(rental_analytics.router, prefix="/api")
+app.include_router(ai_commerce.router, prefix="/api")
+app.include_router(business.router, prefix="/api")
 app.include_router(observability.router)  # top-level ready and metrics
 

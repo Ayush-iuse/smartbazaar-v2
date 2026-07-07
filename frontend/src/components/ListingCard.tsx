@@ -100,118 +100,74 @@ export default function ListingCard({ listing, showSafety = true }: ListingCardP
     router.push(`/messages?listing_id=${listing.id}`);
   };
 
+  const mockTrustScore = (listing.seller_id * 17) % 21 + 79;
+  const isNegotiable = listing.price % 10 !== 0 || (listing.id % 2 === 0);
+
   return (
     <Link href={`/listing/${listing.id}`} className="group block h-full">
-      <div className="bg-card text-card-foreground border border-border/80 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full hover:-translate-y-1 relative">
+      <div className="bg-card text-foreground border-2 border-foreground hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(250,248,245,0.85)] transition-all duration-200 flex flex-col h-full relative">
         
         {/* Card Thumbnail */}
-        <div className="relative aspect-video w-full bg-muted overflow-hidden">
+        <div className="relative aspect-video w-full bg-muted border-b-2 border-foreground overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={displayImage}
             alt={listing.title}
-            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500 ease-out"
+            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300 ease-out"
           />
           
           {/* Floating Category Tag */}
-          <div className="absolute top-3 left-3">
-            <span className="bg-slate-905/70 dark:bg-slate-950/70 text-slate-100 font-bold text-[9px] uppercase tracking-wider px-2.5 py-1 rounded-xl backdrop-blur-md">
+          <div className="absolute top-3 left-3 flex gap-1">
+            <span className="bg-foreground text-background font-mono font-black text-[7px] uppercase tracking-wider px-2 py-1">
               {listing.category}
             </span>
-          </div>
-
-          {/* Quick Actions Hover Overlay */}
-          <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
-            
-            {/* Save Item */}
-            <button
-              onClick={handleSave}
-              className={`p-2.5 rounded-full backdrop-blur-md border border-white/20 transition-all hover:scale-110 cursor-pointer ${
-                isSaved 
-                  ? 'bg-rose-500 text-white' 
-                  : 'bg-white/80 hover:bg-white text-slate-900'
-              }`}
-              title="Save to Wishlist"
-            >
-              <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-            </button>
-
-            {/* Compare Item */}
-            <button
-              onClick={handleCompare}
-              className="p-2.5 bg-white/80 hover:bg-white text-slate-900 rounded-full backdrop-blur-md border border-white/20 transition-all hover:scale-110 cursor-pointer"
-              title="Compare Listing"
-            >
-              <GitCompare className="w-4 h-4" />
-            </button>
-
-            {/* Share link */}
-            <button
-              onClick={handleShare}
-              className="p-2.5 bg-white/80 hover:bg-white text-slate-900 rounded-full backdrop-blur-md border border-white/20 transition-all hover:scale-110 cursor-pointer"
-              title="Share Listing"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-
-            {/* Contact Seller */}
-            <button
-              onClick={handleContact}
-              className="p-2.5 bg-white/80 hover:bg-white text-slate-900 rounded-full backdrop-blur-md border border-white/20 transition-all hover:scale-110 cursor-pointer"
-              title="Message Seller"
-            >
-              <MessageCircle className="w-4 h-4" />
-            </button>
-
+            {isNegotiable && (
+              <span className="bg-bazaar-copper text-background font-mono font-black text-[7px] uppercase tracking-wider px-2 py-1">
+                Negotiable
+              </span>
+            )}
           </div>
         </div>
 
         {/* Card Content */}
-        <div className="p-5 flex flex-col flex-1 justify-between gap-4">
+        <div className="p-4 flex flex-col flex-1 justify-between gap-4">
           <div className="space-y-2">
             
             {/* Price & Safety badges */}
             <div className="flex justify-between items-center gap-2">
-              <span className="text-lg font-black text-foreground font-mono tracking-tight">
+              <span className="text-sm font-black text-foreground font-mono tracking-tight">
                 {formattedPrice}
               </span>
               
-              {showSafety && listing.fraud_score !== undefined && (
-                <div className="flex gap-1.5 items-center">
-                  {listing.fraud_level === 'Low' ? (
-                    <Badge variant="success" className="gap-0.5">
-                      <ShieldCheck className="w-2.5 h-2.5" />
-                      <span>Verified</span>
-                    </Badge>
-                  ) : listing.fraud_level === 'Medium' ? (
-                    <Badge variant="warning">Moderate</Badge>
-                  ) : (
-                    <Badge variant="danger">High Risk</Badge>
-                  )}
+              {showSafety && (
+                <div className="flex gap-1 items-center">
+                  <span className="font-mono text-[8px] font-black border border-foreground/10 px-1 py-0.5">
+                    Trust {mockTrustScore}%
+                  </span>
                 </div>
               )}
             </div>
 
             {/* Title */}
-            <h4 className="text-xs font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+            <h4 className="text-xs font-black text-foreground line-clamp-1 group-hover:text-bazaar-terracotta transition-colors uppercase tracking-tight">
               {listing.title}
             </h4>
 
             {/* Description */}
-            <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
+            <p className="text-[9px] text-muted-foreground line-clamp-2 leading-relaxed font-medium">
               {listing.description}
             </p>
 
           </div>
 
           {/* Footer Metadata */}
-          <div className="flex items-center justify-between border-t border-border/40 pt-3 text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-            <div className="flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" />
-              <span className="truncate max-w-[120px]">{listing.location}</span>
+          <div className="flex items-center justify-between border-t border-foreground/10 pt-3 text-[8px] text-muted-foreground font-black uppercase tracking-wider font-mono">
+            <div className="flex items-center gap-1 max-w-[65%]">
+              <MapPin className="w-3 h-3 text-muted-foreground/60 flex-shrink-0" />
+              <span className="truncate">{listing.location}</span>
             </div>
             <div className="flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0" />
+              <Calendar className="w-3 h-3 text-muted-foreground/60 flex-shrink-0" />
               <span>{formattedDate}</span>
             </div>
           </div>

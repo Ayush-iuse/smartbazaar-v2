@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../../lib/store';
-import api from '../../lib/api';
+import api, { formatError } from '../../lib/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import AIBadge from '../../components/AIBadge';
 import { Sparkles, ArrowRight, Tag, BadgePercent, ShieldAlert, Plus, X, Wand2 } from 'lucide-react';
@@ -28,6 +28,14 @@ export default function CreateListingPage() {
   const [condition, setCondition] = useState('New');
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+
+  // V4 Sell/Rent dynamic states
+  const [allowSale, setAllowSale] = useState(true);
+  const [allowRental, setAllowRental] = useState(false);
+  const [rentalDailyRate, setRentalDailyRate] = useState('');
+  const [rentalWeeklyRate, setRentalWeeklyRate] = useState('');
+  const [rentalMonthlyRate, setRentalMonthlyRate] = useState('');
+  const [securityDeposit, setSecurityDeposit] = useState('');
 
   // AI Assistant states
   const [keywords, setKeywords] = useState('');
@@ -206,8 +214,12 @@ export default function CreateListingPage() {
     e.preventDefault();
     setError(null);
     
-    if (!title || !price || !category || !location) {
+    if (!title || !category || !location) {
       setError('Please fill in all mandatory fields.');
+      return;
+    }
+    if (!allowSale && !allowRental) {
+      setError('You must select at least Sell or Rent options.');
       return;
     }
 
@@ -216,20 +228,30 @@ export default function CreateListingPage() {
       const listingPayload = {
         title,
         description,
-        price: parseFloat(price),
+        price: allowSale ? parseFloat(price) : 0,
         category,
         location,
         image_urls: imageUrls,
+        allow_sale: allowSale,
+        allow_rental: allowRental
       };
 
       const res = await api.post('/api/listings', listingPayload);
+      
+      if (allowRental) {
+        await api.post('/api/rentals', {
+          listing_id: res.data.id,
+          rental_daily_rate: rentalDailyRate ? parseFloat(rentalDailyRate) : null,
+          rental_weekly_rate: rentalWeeklyRate ? parseFloat(rentalWeeklyRate) : null,
+          rental_monthly_rate: rentalMonthlyRate ? parseFloat(rentalMonthlyRate) : null,
+          security_deposit: securityDeposit ? parseFloat(securityDeposit) : 0.0
+        });
+      }
+
       router.push(`/listing/${res.data.id}`);
     } catch (err: any) {
       console.error(err);
-      setError(
-        err.response?.data?.detail || 
-        'An error occurred while publishing the listing. Please check input values.'
-      );
+      setError(formatError(err));
     } finally {
       setIsLoading(false);
     }
@@ -319,18 +341,43 @@ export default function CreateListingPage() {
               </Select>
             </div>
 
+            {/* Sell / Rent Selection */}
+            <div className="flex gap-6 items-center p-4 bg-muted/20 border border-border/40 rounded-2xl">
+              <label className="flex items-center gap-2 text-xs font-black uppercase text-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={allowSale}
+                  onChange={(e) => setAllowSale(e.target.checked)}
+                  className="rounded border-input text-primary focus:ring-primary w-4 h-4"
+                />
+                <span>Allow Sale / Buy</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs font-black uppercase text-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={allowRental}
+                  onChange={(e) => setAllowRental(e.target.checked)}
+                  className="rounded border-input text-primary focus:ring-primary w-4 h-4"
+                />
+                <span>Allow Rental</span>
+              </label>
+            </div>
+
             {/* Price & Location */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                type="number"
-                required
-                min={0}
-                placeholder="₹ Amount"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                label="Price (INR ₹) *"
-                className="font-mono font-semibold"
-              />
+              {allowSale && (
+                <Input
+                  type="number"
+                  required={allowSale}
+                  min={0}
+                  placeholder="₹ Amount"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  label="Buy Out Price (INR ₹) *"
+                  className="font-mono font-semibold"
+                />
+              )}
 
               <Input
                 type="text"
@@ -341,6 +388,50 @@ export default function CreateListingPage() {
                 label="Trading Location *"
               />
             </div>
+
+            {/* Rental specific fields (conditionally visible) */}
+            {allowRental && (
+              <div className="p-4 border border-white/5 bg-white/[0.01] rounded-2xl space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-wider text-primary">Rental Specific Configurations</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    type="number"
+                    required={allowRental}
+                    min={0}
+                    placeholder="₹ Daily Rate"
+                    value={rentalDailyRate}
+                    onChange={(e) => setRentalDailyRate(e.target.value)}
+                    label="Daily Rental Rate (₹) *"
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="₹ Security Deposit"
+                    value={securityDeposit}
+                    onChange={(e) => setSecurityDeposit(e.target.value)}
+                    label="Security Deposit (₹) *"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="₹ Weekly Rate"
+                    value={rentalWeeklyRate}
+                    onChange={(e) => setRentalWeeklyRate(e.target.value)}
+                    label="Weekly Rental Rate (₹)"
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="₹ Monthly Rate"
+                    value={rentalMonthlyRate}
+                    onChange={(e) => setRentalMonthlyRate(e.target.value)}
+                    label="Monthly Rental Rate (₹)"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Image URLs Input */}
             <div className="flex flex-col gap-1.5 w-full">

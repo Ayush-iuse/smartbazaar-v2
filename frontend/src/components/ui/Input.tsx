@@ -1,4 +1,5 @@
 import React, { forwardRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
@@ -18,16 +19,24 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           id={id}
           ref={ref}
           type={type}
-          className={`flex h-10 w-full rounded-xl border border-input bg-background px-4 py-3 text-xs ring-offset-background file:border-0 file:bg-transparent file:text-xs file:font-medium placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 ${
-            error ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''
+          className={`flex h-10 w-full rounded-none border-2 border-foreground bg-background px-4 py-3 text-xs placeholder:text-muted-foreground/60 outline-none focus:border-bazaar-terracotta disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 ${
+            error ? 'border-destructive focus:border-destructive' : ''
           } ${className}`}
           {...props}
         />
-        {error && (
-          <span className="text-[10px] font-bold text-destructive">
-            {error}
-          </span>
-        )}
+        <AnimatePresence>
+          {error && (
+            <motion.span
+              initial={{ opacity: 0, y: -4, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -4, height: 0 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              className="text-[10px] font-bold text-destructive overflow-hidden"
+            >
+              {error}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </div>
     );
   }

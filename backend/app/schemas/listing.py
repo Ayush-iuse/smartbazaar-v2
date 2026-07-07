@@ -10,6 +10,8 @@ class ListingCreate(BaseModel):
     category: str = Field(..., min_length=1)
     location: str = Field(..., min_length=1)
     image_urls: List[str] = Field(default=[], max_items=4, description="Up to 4 image URLs")
+    allow_sale: bool = True
+    allow_rental: bool = False
 
 class ListingUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -18,6 +20,8 @@ class ListingUpdate(BaseModel):
     category: Optional[str] = None
     location: Optional[str] = None
     image_urls: Optional[List[str]] = Field(None, max_items=4)
+    allow_sale: Optional[bool] = None
+    allow_rental: Optional[bool] = None
 
 class ListingResponse(BaseModel):
     id: int
@@ -33,6 +37,8 @@ class ListingResponse(BaseModel):
     status: str = "Active"
     views_count: int = 0
     saves_count: int = 0
+    allow_sale: bool = True
+    allow_rental: bool = False
     created_at: datetime
 
     class Config:

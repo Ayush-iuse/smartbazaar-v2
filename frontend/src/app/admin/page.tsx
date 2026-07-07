@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import api from '@/lib/api';
+import api, { formatError } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 import { 
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
         setAuditLogs(res.data);
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to load administrative data.');
+      setError(formatError(err));
     } finally {
       setLoading(false);
     }

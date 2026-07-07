@@ -32,9 +32,25 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
+    from sqlalchemy import text
+    # Drop and recreate schema public first to guarantee a clean slate
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("DROP SCHEMA public CASCADE;"))
+            conn.execute(text("CREATE SCHEMA public;"))
+            conn.commit()
+    except Exception as e:
+        print(f"Pre-setup clean failed: {e}")
+        
     Base.metadata.create_all(bind=engine)
     yield
-    Base.metadata.drop_all(bind=engine)
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("DROP SCHEMA public CASCADE;"))
+            conn.execute(text("CREATE SCHEMA public;"))
+            conn.commit()
+    except Exception as e:
+        print(f"Teardown clean failed: {e}")
 
 @pytest.fixture(scope="function")
 def db_session():

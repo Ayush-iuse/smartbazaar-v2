@@ -74,6 +74,11 @@ def get_messages(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Verify participant ownership
+    conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    if not conv or (conv.buyer_id != current_user.id and conv.seller_id != current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorized to access this conversation")
+
     if query:
         return MessageService.search_messages(
             db=db,
@@ -127,6 +132,11 @@ async def send_message(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Verify participant ownership
+    conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    if not conv or (conv.buyer_id != current_user.id and conv.seller_id != current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorized to message in this conversation")
+
     if SpamDetector.is_rate_limited(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from backend.app.database import get_db
 from backend.app.schemas.listing import ListingCreate, ListingUpdate, ListingResponse, ListingScoreResponse
 from backend.app.services.auth_service import get_current_user, get_current_user_optional
@@ -21,12 +21,23 @@ def create_new_listing(
 ):
     return listing_service.create_listing(db, listing_in, current_user.id)
 
+@router.get("/my", response_model=List[ListingResponse])
+def read_my_listings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from backend.app.models.listing import Listing
+    return db.query(Listing).filter(Listing.seller_id == current_user.id).order_by(Listing.created_at.desc()).all()
+
 @router.get("", response_model=List[ListingResponse])
 def read_listings(
     page: int = 1,
     size: int = 20,
+    allow_sale: Optional[bool] = None,
+    allow_rental: Optional[bool] = None,
     db: Session = Depends(get_db)
 ):
+    from typing import Optional
     if page < 1:
         page = 1
     if size < 1:
@@ -34,7 +45,7 @@ def read_listings(
     elif size > 100:
         size = 100
     skip = (page - 1) * size
-    return listing_service.get_listings(db, skip=skip, limit=size)
+    return listing_service.get_listings(db, skip=skip, limit=size, allow_sale=allow_sale, allow_rental=allow_rental)
 
 @router.get("/{id}", response_model=ListingResponse)
 def read_listing_detail(
@@ -93,6 +104,13 @@ def read_listing_score(id: int, db: Session = Depends(get_db)):
 @recommendations_router.get("/trending", response_model=List[ListingResponse])
 def read_trending_listings(db: Session = Depends(get_db)):
     return RecommendationService.get_trending_listings(db)
+
+@recommendations_router.get("/personal", response_model=List[ListingResponse])
+def read_personal_recommendations(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return RecommendationService.get_personalized_recommendations(db, current_user.id)
 
 @recommendations_router.get("/{listing_id}", response_model=List[ListingResponse])
 def read_similar_listings(listing_id: int, db: Session = Depends(get_db)):

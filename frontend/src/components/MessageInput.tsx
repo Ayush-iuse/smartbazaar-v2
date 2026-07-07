@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Image, Mic, Square, Trash2 } from 'lucide-react';
+import { Send, Image, Mic, Square, Trash2, MapPin, FileText, User } from 'lucide-react';
 
 interface MessageInputProps {
-  onSendMessage: (content: string) => void;
-  onSendMedia: (type: 'image' | 'voice', file: File) => Promise<void>;
+  onSendMessage: (content: string, type?: string) => void;
+  onSendMedia: (type: 'image' | 'voice' | 'document', file: File) => Promise<void>;
   onTyping: (isTyping: boolean) => void;
   disabled?: boolean;
 }
@@ -23,8 +23,34 @@ export default function MessageInput({
   const typingTimeoutRef = useRef<any>(null);
   const isTypingRef = useRef(false);
 
-  // File picker reference
+  // File picker references
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDocClick = () => {
+    docInputRef.current?.click();
+  };
+
+  const handleDocChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size exceeds the 5MB limit.');
+      return;
+    }
+    await onSendMedia('document', file);
+    if (docInputRef.current) docInputRef.current.value = '';
+  };
+
+  const handleSendLocation = () => {
+    const coordsStr = "Metro Station Square, Pune (Lat: 18.52, Lng: 73.85)";
+    onSendMessage(coordsStr, 'location');
+  };
+
+  const handleSendContact = () => {
+    const contactStr = "Rajesh Sharma, +91 98765 43210";
+    onSendMessage(contactStr, 'contact');
+  };
 
   // Handle typing status triggers
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,6 +230,46 @@ export default function MessageInput({
             accept="image/jpeg,image/png"
             className="hidden"
           />
+
+          {/* Document Attachment Button */}
+          <button
+            type="button"
+            onClick={handleDocClick}
+            disabled={disabled}
+            className="p-2.5 bg-slate-50 hover:bg-slate-105 dark:bg-slate-950 dark:hover:bg-slate-800 text-slate-450 hover:text-slate-655 dark:text-slate-400 rounded-xl border border-slate-200 dark:border-slate-800/80 transition-colors"
+            title="Attach Document"
+          >
+            <FileText className="w-4 h-4" />
+          </button>
+          <input
+            type="file"
+            ref={docInputRef}
+            onChange={handleDocChange}
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+            className="hidden"
+          />
+
+          {/* Location Attachment Button */}
+          <button
+            type="button"
+            onClick={handleSendLocation}
+            disabled={disabled}
+            className="p-2.5 bg-slate-50 hover:bg-slate-105 dark:bg-slate-950 dark:hover:bg-slate-800 text-slate-450 hover:text-slate-655 dark:text-slate-400 rounded-xl border border-slate-200 dark:border-slate-800/80 transition-colors"
+            title="Share Location"
+          >
+            <MapPin className="w-4 h-4" />
+          </button>
+
+          {/* Contact Attachment Button */}
+          <button
+            type="button"
+            onClick={handleSendContact}
+            disabled={disabled}
+            className="p-2.5 bg-slate-50 hover:bg-slate-105 dark:bg-slate-950 dark:hover:bg-slate-800 text-slate-450 hover:text-slate-655 dark:text-slate-400 rounded-xl border border-slate-200 dark:border-slate-800/80 transition-colors"
+            title="Share Contact"
+          >
+            <User className="w-4 h-4" />
+          </button>
 
           <button
             type="button"

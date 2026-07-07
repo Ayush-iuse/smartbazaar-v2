@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { useReducedMotion, staggerContainerVariants, fadeInUpVariants } from '../../lib/motion';
 import api from '../../lib/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { Badge } from '../../components/ui/Badge';
@@ -34,6 +36,7 @@ interface AnalyticsData {
 }
 
 export default function AnalyticsPage() {
+  const reduced = useReducedMotion();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [insights, setInsights] = useState<{ summary: string; is_fallback: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -133,57 +136,71 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Overview Totals Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-        <Card className="hover:shadow-md">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="p-3 bg-primary/10 text-primary rounded-2xl">
-              <LayoutDashboard className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider block">Total Items</span>
-              <span className="text-2xl font-black tracking-tight font-mono">{data.total_listings}</span>
-            </div>
-          </CardContent>
-        </Card>
+      <motion.div 
+        variants={staggerContainerVariants(0.04, 0.06)}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: '-50px' }}
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5"
+      >
+        <motion.div variants={fadeInUpVariants(reduced)}>
+          <Card className="hover:shadow-md">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="p-3 bg-primary/10 text-primary rounded-2xl">
+                <LayoutDashboard className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider block">Total Items</span>
+                <span className="text-2xl font-black tracking-tight font-mono">{data.total_listings}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="hover:shadow-md">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="p-3 bg-indigo-500/10 text-indigo-500 rounded-2xl">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider block">Total Categories</span>
-              <span className="text-2xl font-black tracking-tight font-mono">{data.categories.length}</span>
-            </div>
-          </CardContent>
-        </Card>
+        <motion.div variants={fadeInUpVariants(reduced)}>
+          <Card className="hover:shadow-md">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="p-3 bg-indigo-500/10 text-indigo-500 rounded-2xl">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider block">Total Categories</span>
+                <span className="text-2xl font-black tracking-tight font-mono">{data.categories.length}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="hover:shadow-md">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="p-3 bg-rose-500/10 text-rose-500 rounded-2xl">
-              <ShieldAlert className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider block">Flagged Scam Ads</span>
-              <span className="text-2xl font-black tracking-tight font-mono">
-                {data.fraud_distribution["High"] || 0}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <motion.div variants={fadeInUpVariants(reduced)}>
+          <Card className="hover:shadow-md">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="p-3 bg-rose-500/10 text-rose-500 rounded-2xl">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider block">Flagged Scam Ads</span>
+                <span className="text-2xl font-black tracking-tight font-mono">
+                  {data.fraud_distribution["High"] || 0}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="hover:shadow-md">
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider block">Locations</span>
-              <span className="text-2xl font-black tracking-tight font-mono">{data.locations.length}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        <motion.div variants={fadeInUpVariants(reduced)}>
+          <Card className="hover:shadow-md">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider block">Locations</span>
+                <span className="text-2xl font-black tracking-tight font-mono">{data.locations.length}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
       {/* Main Stats Graphs Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

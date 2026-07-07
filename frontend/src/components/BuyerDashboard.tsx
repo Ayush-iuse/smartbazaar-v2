@@ -5,7 +5,8 @@ import { useAuthStore } from '../lib/store';
 import ListingCard, { Listing } from './ListingCard';
 import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
-import { Heart, Send, MessageCircle, Eye, Sparkles, AlertCircle, ArrowRight } from 'lucide-react';
+import { Badge } from './ui/Badge';
+import { Heart, Send, MessageCircle, Eye, Sparkles, AlertCircle, ArrowRight, Bell, User, Tag, ShoppingBag } from 'lucide-react';
 
 export default function BuyerDashboard() {
   const router = useRouter();
@@ -41,8 +42,8 @@ export default function BuyerDashboard() {
         const activeConvs = (convRes.data || []).filter((c: any) => c.buyer_id === user.id);
         setConversations(activeConvs);
 
-        // 4. Fetch Trending Recommendations
-        const recRes = await api.get('/api/recommendations/trending');
+        // 4. Fetch Personalized Recommendations
+        const recRes = await api.get('/api/recommendations/personal');
         setRecommendations(recRes.data || []);
 
         // 5. Load Recently Viewed from localStorage
@@ -228,23 +229,132 @@ export default function BuyerDashboard() {
       {/* Recently Viewed */}
       {recentlyViewed.length > 0 && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
-            <Eye className="w-5 h-5 text-slate-500" />
-            <h2 className="text-lg font-bold text-slate-850 dark:text-slate-100">Recently Viewed</h2>
+          <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+            <Eye className="w-5 h-5 text-muted-foreground" />
+            <h2 className="text-lg font-bold text-foreground">Recently Viewed Items</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {recentlyViewed.map((item) => (
+            {recentlyViewed.slice(0, 4).map((item) => (
               <ListingCard key={item.id} listing={item} />
             ))}
           </div>
         </div>
       )}
 
+      {/* Price Alerts Watchlist */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+          <Bell className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-black text-foreground uppercase tracking-tight">Active Price Drop Watchlist</h2>
+        </div>
+        <div className="glass rounded-[2rem] border border-border/45 p-6 shadow-sm">
+          <div className="divide-y divide-border/20">
+            {[
+              { title: "Sony WH-1000XM4 Headphones", base: 18500, target: 16000, active: true },
+              { title: "Ergonomic Office Table", base: 4500, target: 4000, active: false }
+            ].map((alert, i) => (
+              <div key={i} className="py-3.5 flex justify-between items-center text-xs">
+                <div>
+                  <h4 className="font-bold text-foreground">{alert.title}</h4>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Original Price: ₹{alert.base.toLocaleString()} • Trigger drop limit: <b className="text-primary font-mono">₹{alert.target.toLocaleString()}</b>
+                  </p>
+                </div>
+                <Badge variant={alert.active ? "success" : "secondary"} className="text-[9px] font-black uppercase tracking-wider font-mono">
+                  {alert.active ? "Alert Triggered" : "Active monitoring"}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Saved Sellers / Shops */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+          <User className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-bold text-foreground">Saved Sellers & Favorite Shops</h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {[
+            { name: "Rahul Deshmukh", rating: "4.9 ★", location: "Pune, MH", status: "Online" },
+            { name: "Aarav Sharma", rating: "4.8 ★", location: "Mumbai, MH", status: "Offline" }
+          ].map((seller, idx) => (
+            <div key={idx} className="glass p-4 rounded-3xl border border-border/30 flex justify-between items-center bg-muted/5">
+              <div>
+                <h4 className="text-xs font-black text-foreground">{seller.name}</h4>
+                <p className="text-[9px] text-muted-foreground mt-0.5">{seller.location} • <b className="text-primary">{seller.rating}</b></p>
+              </div>
+              <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${
+                seller.status === 'Online' ? 'bg-green-500/10 text-green-500' : 'bg-slate-500/10 text-slate-400'
+              }`}>
+                {seller.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Negotiation & Counter Offer History */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+          <Tag className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-bold text-foreground">Negotiation & Bidding History</h2>
+        </div>
+        <div className="glass rounded-[2rem] border border-border/45 p-6 shadow-sm">
+          <div className="divide-y divide-border/20">
+            {[
+              { title: "Yamaha FG800 Acoustic Guitar", asking: 12500, offer: 11000, date: "July 6, 2026", status: "Pending Response" },
+              { title: "Ergonomic Office Chair", asking: 5000, offer: 4500, date: "July 5, 2026", status: "Accepted" }
+            ].map((neg, idx) => (
+              <div key={idx} className="py-3.5 flex justify-between items-center text-xs">
+                <div>
+                  <h4 className="font-bold text-foreground">{neg.title}</h4>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Asking: ₹{neg.asking.toLocaleString()} • Your bid: <b className="text-primary font-mono">₹{neg.offer.toLocaleString()}</b> • {neg.date}
+                  </p>
+                </div>
+                <Badge variant={neg.status === 'Accepted' ? 'success' : 'secondary'} className="text-[9px] font-black uppercase tracking-wider font-mono">
+                  {neg.status}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Purchase History */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+          <ShoppingBag className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-bold text-foreground">Purchase Records</h2>
+        </div>
+        <div className="glass rounded-[2rem] border border-border/45 p-6 shadow-sm">
+          <div className="divide-y divide-border/20">
+            {[
+              { orderId: "ORD-9824", title: "Premium Leather Jacket", price: 3200, date: "June 28, 2026", method: "Local Meetup Pickup" }
+            ].map((ord, idx) => (
+              <div key={idx} className="py-3.5 flex justify-between items-center text-xs">
+                <div>
+                  <h4 className="font-bold text-foreground">{ord.title}</h4>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Order ID: {ord.orderId} • Price: <b className="text-primary font-mono">₹{ord.price.toLocaleString()}</b> • {ord.date}
+                  </p>
+                </div>
+                <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 font-bold px-2 py-0.5 rounded-lg font-mono">
+                  {ord.method}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Recommended Listings */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
-          <Sparkles className="w-5 h-5 text-brand-500" />
-          <h2 className="text-lg font-bold text-slate-850 dark:text-slate-100">AI Recommendations & Trending</h2>
+        <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+          <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+          <h2 className="text-lg font-bold text-foreground">AI Recommendations & Trending</h2>
         </div>
         {recommendations.length === 0 ? (
           <div className="py-6">

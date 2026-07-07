@@ -216,4 +216,47 @@ api.interceptors.response.use(
   }
 );
 
+export function formatError(err: any): string {
+  if (!err) return '';
+  
+  if (typeof err === 'string') return err;
+  
+  const detail = err.response?.data?.detail;
+  if (detail) {
+    if (typeof detail === 'string') {
+      return detail;
+    }
+    if (Array.isArray(detail)) {
+      return detail
+        .map((e: any) => {
+          if (e && typeof e === 'object') {
+            const locStr = Array.isArray(e.loc) ? e.loc.filter((l: any) => l !== 'body' && l !== 'query').join('.') : '';
+            return `${locStr ? locStr + ': ' : ''}${e.msg || JSON.stringify(e)}`;
+          }
+          return String(e);
+        })
+        .join(', ');
+    }
+    if (typeof detail === 'object') {
+      if (detail.msg) return detail.msg;
+      return JSON.stringify(detail);
+    }
+  }
+
+  const message = err.response?.data?.message || err.response?.data?.msg;
+  if (message && typeof message === 'string') {
+    return message;
+  }
+
+  if (err.message && typeof err.message === 'string') {
+    return err.message;
+  }
+
+  try {
+    return JSON.stringify(err);
+  } catch (e) {
+    return String(err);
+  }
+}
+
 export default api;

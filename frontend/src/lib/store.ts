@@ -58,48 +58,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }));
 
-export interface ThemeState {
-  theme: 'light' | 'dark' | 'system';
-  setTheme: (theme: 'light' | 'dark' | 'system') => void;
-  initTheme: () => void;
-}
-
-export const useThemeStore = create<ThemeState>((set, get) => ({
-  theme: 'light',
-  setTheme: (theme) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('sb_theme', theme);
-      const root = window.document.documentElement;
-      if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    }
-    set({ theme });
-  },
-  initTheme: () => {
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('sb_theme') as 'light' | 'dark' | 'system' || 'light';
-      get().setTheme(savedTheme);
-      
-      // Listen for system theme changes if system theme is selected
-      const media = window.matchMedia('(prefers-color-scheme: dark)');
-      const listener = () => {
-        if (get().theme === 'system') {
-          get().setTheme('system');
-        }
-      };
-      
-      // Compatibility with older browsers
-      if (media.addEventListener) {
-        media.addEventListener('change', listener);
-      } else {
-        media.addListener(listener);
-      }
-    }
-  }
-}));
+// Theme configurations handled via next-themes provider directly.
 
 export interface OfflineState {
   isOffline: boolean;

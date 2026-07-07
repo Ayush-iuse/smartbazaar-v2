@@ -1,4 +1,8 @@
+'use client';
+
 import React, { forwardRef } from 'react';
+import { motion } from 'framer-motion';
+import { useReducedMotion } from '@/lib/motion';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'link';
@@ -8,15 +12,17 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className = '', variant = 'primary', size = 'md', isLoading, disabled, children, ...props }, ref) => {
-    const baseStyle = 'inline-flex items-center justify-center font-bold tracking-tight rounded-xl transition-all duration-200 outline-none focus:ring-2 focus:ring-primary/40 active:scale-98 disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100';
+    const reduced = useReducedMotion();
+    
+    const baseStyle = 'inline-flex items-center justify-center font-bold tracking-tight rounded-none transition-all duration-150 outline-none disabled:opacity-50 disabled:pointer-events-none relative overflow-hidden active:translate-x-[1px] active:translate-y-[1px] active:shadow-none border-2 border-foreground';
     
     const variants = {
-      primary: 'bg-primary text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/10 hover:shadow-lg hover:shadow-primary/20',
-      secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border',
-      outline: 'bg-transparent border border-border hover:bg-muted text-foreground',
-      ghost: 'bg-transparent hover:bg-muted text-foreground',
-      destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md shadow-destructive/10',
-      link: 'bg-transparent text-primary hover:underline underline-offset-4 !p-0 !rounded-none active:scale-100'
+      primary: 'bg-primary text-primary-foreground hover:bg-primary/95 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(250,248,245,0.85)]',
+      secondary: 'bg-card text-foreground hover:bg-muted/10 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(250,248,245,0.85)]',
+      outline: 'bg-transparent hover:bg-muted/5 text-foreground',
+      ghost: 'bg-transparent hover:bg-muted/5 text-foreground border-transparent',
+      destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]',
+      link: 'bg-transparent text-primary hover:underline underline-offset-4 !p-0 !rounded-none border-transparent'
     };
 
     const sizes = {
@@ -26,11 +32,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     return (
-      <button
-        ref={ref}
+      <motion.button
+        ref={ref as any}
         disabled={disabled || isLoading}
+        whileHover={reduced ? {} : { scale: 1.03, y: -1.5 }}
+        whileTap={reduced ? {} : { scale: 0.97 }}
+        transition={{ type: "spring", stiffness: 350, damping: 18 }}
         className={`${baseStyle} ${variants[variant]} ${sizes[size]} ${className}`}
-        {...props}
+        {...(props as any)}
       >
         {isLoading && (
           <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -39,7 +48,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           </svg>
         )}
         {children}
-      </button>
+      </motion.button>
     );
   }
 );
