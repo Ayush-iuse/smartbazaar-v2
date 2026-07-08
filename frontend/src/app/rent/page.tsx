@@ -53,19 +53,16 @@ export default function RentPage() {
   const fetchRentals = useCallback(async () => {
     setLoading(true);
     try {
-      // Featured: first 6 rental listings
-      const featuredRes = await api.get('/api/listings?allow_rental=true&limit=6');
-      const featuredData = Array.isArray(featuredRes.data)
-        ? featuredRes.data
-        : (featuredRes.data?.listings || []);
-      setFeaturedListings(featuredData.slice(0, 6));
-
-      // All listings for the main grid
-      const allRes = await api.get('/api/listings?allow_rental=true');
+      // Fetch all listings and filter rental ones client-side
+      const allRes = await api.get('/api/listings?page=1&size=50');
       const allData = Array.isArray(allRes.data)
         ? allRes.data
         : (allRes.data?.listings || []);
-      setAllListings(allData);
+
+      // Filter to only rental listings
+      const rentalData = allData.filter((l: any) => l.allow_rental === true);
+      setFeaturedListings(rentalData.slice(0, 6));
+      setAllListings(rentalData);
 
       // Trending
       try {

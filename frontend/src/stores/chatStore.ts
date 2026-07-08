@@ -79,10 +79,18 @@ const getWsUrl = (token: string) => {
     }
     return `${cleanWsUrl}/api/v2/chat/ws?token=${token}`;
   }
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-  const wsProtocol = baseUrl.startsWith('https') ? 'wss:' : 'ws:';
-  const host = baseUrl.replace(/^https?:\/\//, '');
-  return `${wsProtocol}//${host}/api/v2/chat/ws?token=${token}`;
+
+  if (typeof window !== 'undefined') {
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return `ws://localhost:8000/api/v2/chat/ws?token=${token}`;
+    }
+    return `${wsProtocol}//${host}/api/v2/chat/ws?token=${token}`;
+  }
+
+  return `ws://localhost:8000/api/v2/chat/ws?token=${token}`;
 };
 
 

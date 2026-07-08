@@ -24,6 +24,36 @@ const nextConfig = {
 
   ...(process.env.BUILD_STANDALONE === 'true' ? { output: 'standalone' } : {}),
 
+  async rewrites() {
+    // If running on Vercel, let vercel.json handle routing to the serverless function.
+    if (process.env.VERCEL === '1') {
+      return [];
+    }
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const cleanApiUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+    if (cleanApiUrl.startsWith('http')) {
+      return [
+        {
+          source: '/api/health',
+          destination: `${cleanApiUrl}/health`,
+        },
+        {
+          source: '/api/ready',
+          destination: `${cleanApiUrl}/ready`,
+        },
+        {
+          source: '/api/version',
+          destination: `${cleanApiUrl}/version`,
+        },
+        {
+          source: '/api/:path*',
+          destination: `${cleanApiUrl}/api/:path*`,
+        },
+      ];
+    }
+    return [];
+  },
+
   async headers() {
     return [
       {

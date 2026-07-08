@@ -46,14 +46,22 @@ export default function BuyerDashboard() {
         const recRes = await api.get('/api/recommendations/personal');
         setRecommendations(recRes.data || []);
 
-        // 5. Load Recently Viewed from localStorage
-        const storedViews = localStorage.getItem('sb_recently_viewed');
-        if (storedViews) {
-          try {
-            setRecentlyViewed(JSON.parse(storedViews));
-          } catch (e) {
-            console.error('Failed to parse recently viewed items', e);
-          }
+        // 5. Load Recently Viewed from database
+        try {
+          const recentRes = await api.get('/api/listings/recently-viewed');
+          // Map backend recently viewed payload elements to listing card compatible format
+          const mappedRecent = (recentRes.data || []).map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            price: r.price,
+            category: r.category,
+            location: r.location,
+            image_urls: r.image_url ? [r.image_url] : [],
+            created_at: r.viewed_at || new Date().toISOString()
+          }));
+          setRecentlyViewed(mappedRecent);
+        } catch (e) {
+          console.error('Failed to load recently viewed from DB', e);
         }
         
         setError(null);

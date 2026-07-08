@@ -77,12 +77,12 @@ export default function SellerDashboard() {
         console.error('Trust score service failed', e);
       }
 
-      // 5. Fetch Analytics Snapshot
+      // 5. Fetch Analytics Snapshot (User Specific)
       try {
-        const analyticRes = await api.get('/api/analytics/overview');
+        const analyticRes = await api.get('/api/analytics/my');
         setAnalytics(analyticRes.data);
       } catch (e) {
-        console.error('Analytics overview fetch failed', e);
+        console.error('Analytics my fetch failed', e);
       }
 
       setError(null);
@@ -205,7 +205,7 @@ export default function SellerDashboard() {
                 Active Listings
               </span>
               <span className="text-3xl font-black tracking-tight font-mono">
-                {listings.length}
+                {analytics ? analytics.active_listings : listings.length}
               </span>
               <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
                 Total products published
@@ -214,18 +214,18 @@ export default function SellerDashboard() {
           </Card>
         </motion.div>
 
-        {/* Global Analytics snapshot */}
+        {/* Total Sold Items */}
         <motion.div variants={fadeInUpVariants(reduced)}>
           <Card className="hover:shadow-md">
             <CardContent className="p-5 flex flex-col justify-between h-full gap-4">
               <span className="block text-[10px] font-black text-muted-foreground uppercase tracking-wider">
-                Marketplace Activity
+                Sold Items
               </span>
-              <span className="text-2xl font-black tracking-tight font-mono">
-                {analytics ? `${analytics.total_listings} Items` : 'N/A'}
+              <span className="text-3xl font-black tracking-tight font-mono">
+                {analytics ? analytics.sold_listings : 0}
               </span>
               <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-                All active listings site-wide
+                Deals successfully closed
               </span>
             </CardContent>
           </Card>
@@ -240,22 +240,26 @@ export default function SellerDashboard() {
         <Card className="p-5 flex flex-col justify-between gap-4">
           <div>
             <span className="block text-[9px] font-black text-muted-foreground uppercase tracking-wider">Estimated Revenue</span>
-            <span className="text-2xl font-black font-mono mt-2 block">₹{listings.reduce((acc, curr) => acc + (curr.price * 0.95), 12000).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <span className="text-2xl font-black font-mono mt-2 block">
+              ₹{(analytics ? analytics.total_revenue : 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </span>
           </div>
           <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider flex items-center gap-1">
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>+12.4% trust growth</span>
+            <span>Real revenue from closed offers</span>
           </span>
         </Card>
 
         {/* Views & CTR */}
         <Card className="p-5 flex flex-col justify-between gap-4">
           <div>
-            <span className="block text-[9px] font-black text-muted-foreground uppercase tracking-wider">Listing Views & CTR</span>
-            <span className="text-2xl font-black font-mono mt-2 block">1,840 Views</span>
+            <span className="block text-[9px] font-black text-muted-foreground uppercase tracking-wider">Listing Views</span>
+            <span className="text-2xl font-black font-mono mt-2 block">
+              {(analytics ? analytics.total_views : 0).toLocaleString('en-IN')} Views
+            </span>
           </div>
           <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-            Average CTR: <b className="text-foreground">4.2%</b>
+            Total unique impressions
           </span>
         </Card>
 
@@ -263,10 +267,12 @@ export default function SellerDashboard() {
         <Card className="p-5 flex flex-col justify-between gap-4">
           <div>
             <span className="block text-[9px] font-black text-muted-foreground uppercase tracking-wider">Lead Conversion Rate</span>
-            <span className="text-2xl font-black font-mono mt-2 block">14.8%</span>
+            <span className="text-2xl font-black font-mono mt-2 block">
+              {analytics ? analytics.conversion_rate : 0}%
+            </span>
           </div>
           <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-            Inquiries turned to offers
+            Inquiries turned to accepted offers
           </span>
         </Card>
 
@@ -278,9 +284,10 @@ export default function SellerDashboard() {
           </div>
           <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider flex items-center gap-1">
             <Check className="w-3.5 h-3.5" />
-            <span>Email & OTP Verified</span>
+            <span>Email & Profile Scan OK</span>
           </span>
         </Card>
+
 
       </div>
 

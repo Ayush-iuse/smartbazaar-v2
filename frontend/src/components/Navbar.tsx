@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { useAuthStore } from '../lib/store';
 import api from '../lib/api';
+import { useTranslation, SUPPORTED_LOCALES } from '../i18n';
 import {
   ShoppingBag, PlusCircle, LogOut, LayoutDashboard,
   Sun, Moon, Laptop, Heart, MessageSquare, Tag, Bot, Search,
@@ -35,20 +36,23 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [notifCount, setNotifCount] = useState(0);
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { locale, setLocale, t } = useTranslation();
 
-  const navLinks: NavLink[] = [
+  const navLinks = [
     {
       href: '/',
+      labelKey: 'nav.marketplace',
       label: 'Marketplace',
       children: [
-        { href: '/', label: 'Buy', icon: <ShoppingCart className="w-4 h-4" />, desc: 'Browse listings to buy' },
-        { href: '/create-listing', label: 'Sell', icon: <Store className="w-4 h-4" />, desc: 'Create a listing to sell' },
-        { href: '/rent', label: 'Rent', icon: <Package className="w-4 h-4" />, desc: 'Rent from local hosts' },
+        { href: '/', labelKey: 'nav.buy', label: 'Buy', icon: <ShoppingCart className="w-4 h-4" />, desc: 'Browse listings to buy' },
+        { href: '/create-listing', labelKey: 'nav.createListing', label: 'Sell', icon: <Store className="w-4 h-4" />, desc: 'Create a listing to sell' },
+        { href: '/rent', labelKey: 'nav.rent', label: 'Rent', icon: <Package className="w-4 h-4" />, desc: 'Rent from local hosts' },
       ]
     },
-    { href: '/analytics', label: 'Analytics' },
-    { href: '/copilot', label: 'AI Copilot' },
+    { href: '/analytics', labelKey: 'nav.analytics', label: 'Analytics' },
+    { href: '/copilot', labelKey: 'nav.aiConcierge', label: 'AI Copilot' },
   ];
 
   const fetchNotifCount = useCallback(async () => {
@@ -196,6 +200,7 @@ export default function Navbar() {
               {navLinks.map((link) => {
                 const active = isActiveLink(link.href);
                 const hasChildren = !!link.children;
+                const translatedLabel = t(link.labelKey) || link.label;
                 return (
                   <div key={link.href} className="relative">
                     {hasChildren ? (
@@ -205,7 +210,7 @@ export default function Navbar() {
                           active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                         }`}
                       >
-                        {link.label}
+                        {translatedLabel}
                         <motion.div
                           animate={{ rotate: openDropdown === link.label ? 180 : 0 }}
                           transition={{ duration: 0.2 }}
@@ -227,7 +232,7 @@ export default function Navbar() {
                           active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                         }`}
                       >
-                        {link.label}
+                        {translatedLabel}
                         {active && (
                           <motion.span
                             layoutId="navActiveIndicator"
@@ -257,7 +262,7 @@ export default function Navbar() {
                             >
                               <span className="mt-0.5 text-primary">{child.icon}</span>
                               <div>
-                                <div className="text-[11px] font-black uppercase tracking-wider text-foreground group-hover:text-primary transition-colors">{child.label}</div>
+                                <div className="text-[11px] font-black uppercase tracking-wider text-foreground group-hover:text-primary transition-colors">{t(child.labelKey) || child.label}</div>
                                 <div className="text-[9px] text-muted-foreground mt-0.5">{child.desc}</div>
                               </div>
                             </Link>
@@ -300,25 +305,67 @@ export default function Navbar() {
                   <Laptop className="w-4 h-4" />}
               </motion.button>
 
+              {/* Language Switcher */}
+              <div className="relative">
+                <motion.button
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+                  className="px-2 py-1.5 text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors border border-border/40 hover:border-primary/40 rounded"
+                  title="Language"
+                >
+                  {locale.toUpperCase()}
+                </motion.button>
+                <AnimatePresence>
+                  {langDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 4, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 w-48 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden py-1"
+                    >
+                      {SUPPORTED_LOCALES.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => {
+                            setLocale(lang.code);
+                            setLangDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-4 py-2 text-[11px] font-medium transition-colors ${
+                            locale === lang.code
+                              ? 'bg-primary/10 text-primary font-bold'
+                              : 'text-foreground hover:bg-muted'
+                          }`}
+                        >
+                          <span>{lang.name}</span>
+                          <span className="text-muted-foreground font-normal">{lang.nativeName}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {mounted && isAuthenticated ? (
                 <>
                   {/* Messages */}
                   <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}>
-                    <Link href="/messages" className="p-2 block text-muted-foreground hover:text-primary transition-colors" title="Messages">
+                    <Link href="/messages" className="p-2 block text-muted-foreground hover:text-primary transition-colors" title={t('nav.messages')}>
                       <MessageSquare className="w-4 h-4" />
                     </Link>
                   </motion.div>
 
                   {/* Wishlist */}
                   <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}>
-                    <Link href="/wishlist" className="p-2 block text-muted-foreground hover:text-primary transition-colors" title="Wishlist">
+                    <Link href="/wishlist" className="p-2 block text-muted-foreground hover:text-primary transition-colors" title={t('nav.wishlist') || 'Wishlist'}>
                       <Heart className="w-4 h-4" />
                     </Link>
                   </motion.div>
 
                   {/* Notifications with real count badge */}
                   <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}>
-                    <Link href="/notifications" className="p-2 block text-muted-foreground hover:text-primary transition-colors relative" title="Notifications">
+                    <Link href="/notifications" className="p-2 block text-muted-foreground hover:text-primary transition-colors relative" title={t('nav.notifications')}>
                       <Bell className="w-4 h-4" />
                       {notifCount > 0 && (
                         <motion.span
@@ -334,7 +381,7 @@ export default function Navbar() {
 
                   {/* AI Copilot */}
                   <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }}>
-                    <Link href="/copilot" className="p-2 block text-muted-foreground hover:text-primary transition-colors" title="AI Copilot">
+                    <Link href="/copilot" className="p-2 block text-muted-foreground hover:text-primary transition-colors" title={t('nav.aiConcierge')}>
                       <Bot className="w-4 h-4 text-primary animate-pulse-subtle" />
                     </Link>
                   </motion.div>
@@ -345,7 +392,7 @@ export default function Navbar() {
                     className="hidden sm:flex items-center gap-1.5 px-3 h-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[10px] uppercase tracking-wider transition-all duration-150 shadow-[1px_1px_0px_0px_hsl(var(--foreground))] hover:shadow-none hover:translate-x-px hover:translate-y-px"
                   >
                     <PlusCircle className="w-3 h-3" />
-                    <span>List Item</span>
+                    <span>{t('nav.createListing')}</span>
                   </Link>
 
                   {/* Profile dropdown */}
@@ -365,14 +412,13 @@ export default function Navbar() {
                     href="/login"
                     className="hidden sm:flex items-center gap-1.5 px-3 h-8 border border-border text-foreground hover:border-primary hover:text-primary font-bold text-[10px] uppercase tracking-wider transition-all"
                   >
-                    Sign In
+                    {t('nav.login')}
                   </Link>
                   <Link
                     href="/login"
                     className="flex items-center gap-1.5 px-3 h-8 bg-foreground text-background hover:opacity-90 font-bold text-[10px] uppercase tracking-wider transition-all"
                   >
-                    <PlusCircle className="w-3 h-3" />
-                    <span>Sell</span>
+                    {t('auth.register')}
                   </Link>
                 </>
               )}

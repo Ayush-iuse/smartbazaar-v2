@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import api from '../lib/api';
 import ListingCard, { Listing } from '../components/ListingCard';
 import MarketplacePlanet from '../components/MarketplacePlanet';
+import { useTranslation } from '../i18n';
 import {
   Sparkles, ShieldCheck, ArrowRight,
   TrendingUp, Bot, Search, ShoppingBag,
@@ -16,6 +17,7 @@ import {
 
 export default function HomePage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [listings, setListings] = useState<Listing[]>([]);
   const [rentalListings, setRentalListings] = useState<Listing[]>([]);
   const [trending, setTrending] = useState<Listing[]>([]);
@@ -27,34 +29,29 @@ export default function HomePage() {
     { sender: 'bot', text: 'Namaste! Welcome to SmartBazaar. Describe what you are looking to buy or rent today.' }
   ]);
   const [aiLoading, setAiLoading] = useState(false);
-
-  const categories = [
-    { name: 'Electronics', count: '1,420 items', code: '💻' },
-    { name: 'Vehicles', count: '310 items', code: '🚗' },
-    { name: 'Furniture', count: '890 items', code: '🛋️' },
-    { name: 'Gaming', count: '240 items', code: '🎮' },
-    { name: 'Photography', count: '195 items', code: '📷' },
-    { name: 'Fashion', count: '2,150 items', code: '👕' }
-  ];
+  const [categories, setCategories] = useState<Array<{ name: string; count: string; code: string }>>([]);
 
   useEffect(() => {
+    const CATEGORY_EMOJI: Record<string, string> = {
+      Electronics: '💻', Vehicles: '🚗', Furniture: '🛋️',
+      Gaming: '🎮', Photography: '📷', Fashion: '👕',
+      Books: '📚', Sports: '⚽', Home: '🏠', Appliances: '🔌',
+      Jewelry: '💍', Music: '🎸', Tools: '🔧', Other: '📦'
+    };
+
     async function loadData() {
       try {
         setIsLoading(true);
+
         // Load latest buy listings
-        const resListings = await api.get('/api/listings');
+        const resListings = await api.get('/api/listings?page=1&size=20');
         const listData = Array.isArray(resListings.data) ? resListings.data : (resListings.data.listings || []);
         const sorted = [...listData].sort((a: Listing, b: Listing) => b.id - a.id);
         setListings(sorted.slice(0, 8));
 
-        // Load rental listings
-        try {
-          const resRentals = await api.get('/api/listings?allow_rental=true&limit=8');
-          const rentData = Array.isArray(resRentals.data) ? resRentals.data : (resRentals.data?.listings || []);
-          setRentalListings(rentData.slice(0, 8));
-        } catch (e) {
-          console.error('Rental listings fetch error:', e);
-        }
+        // Load rental listings (filter client-side from all listings)
+        const rentalData = listData.filter((l: Listing) => (l as any).allow_rental === true);
+        setRentalListings(rentalData.slice(0, 8));
 
         // Load trending
         try {
@@ -63,6 +60,25 @@ export default function HomePage() {
           setTrending(trendData.slice(0, 8));
         } catch (e) {
           console.error('Trending fetch error:', e);
+        }
+
+        // Load real category counts from analytics
+        try {
+          const resAnalytics = await api.get('/api/analytics/overview');
+          const cats = resAnalytics.data?.categories || [];
+          const dynamicCategories = cats
+            .sort((a: any, b: any) => b.count - a.count)
+            .slice(0, 6)
+            .map((c: any) => ({
+              name: c.category,
+              count: `${c.count.toLocaleString('en-IN')} items`,
+              code: CATEGORY_EMOJI[c.category] || '📦'
+            }));
+          if (dynamicCategories.length > 0) {
+            setCategories(dynamicCategories);
+          }
+        } catch (e) {
+          console.error('Analytics fetch error:', e);
         }
       } catch (err) {
         console.error('Failed to load home page listings:', err);
@@ -133,11 +149,10 @@ export default function HomePage() {
                 <span>The P2P Digital Bazaar</span>
               </div>
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tight text-foreground leading-[0.95]">
-                Trade & Rent <br />
-                <span className="text-bazaar-terracotta">Without Friction</span>
+                {t('home.hero.title')}
               </h1>
               <p className="text-xs md:text-sm text-muted-foreground max-w-lg font-medium leading-relaxed">
-                A localized peer-to-peer exchange modeled after historic street bazaars, governed by modern AI risk checks. Instant checkout buying, escrow booking rentals, and secure digital agreements.
+                {t('home.hero.subtitle')}
               </p>
             </div>
 
@@ -147,14 +162,14 @@ export default function HomePage() {
                 <Search className="w-4 h-4 text-muted-foreground mr-2" />
                 <input
                   type="text"
-                  placeholder="Type what you want to buy or rent (Press Ctrl+K)..."
+                  placeholder={t('home.hero.searchPlaceholder')}
                   value={searchVal}
                   onChange={(e) => setSearchVal(e.target.value)}
                   className="w-full py-3.5 text-xs bg-transparent outline-none text-foreground placeholder:text-muted-foreground/60"
                 />
               </div>
               <button type="submit" className="bg-foreground text-background font-black text-xs uppercase px-6 hover:bg-foreground/90 transition-colors">
-                Search
+                {t('home.hero.searchButton')}
               </button>
             </form>
           </div>
@@ -181,7 +196,7 @@ export default function HomePage() {
             <div className="flex justify-between items-center border-b border-foreground/10 pb-3">
               <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
                 <Compass className="w-4 h-4 text-bazaar-terracotta" />
-                <span>Marketplace Verticals</span>
+                <span>{t('home.categories')}</span>
               </h3>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -286,7 +301,7 @@ export default function HomePage() {
             <div>
               <h2 className="text-sm font-black uppercase tracking-tight text-foreground flex items-center gap-2">
                 <ShoppingBag className="w-4 h-4 text-bazaar-terracotta" />
-                <span>Explore Live Deals</span>
+                <span>{t('home.featuredListings')}</span>
               </h2>
               <p className="text-[10px] text-muted-foreground mt-1">Direct from local hosts and verified business hubs</p>
             </div>
@@ -299,7 +314,7 @@ export default function HomePage() {
                   onClick={() => setActiveTab(tab)}
                   className={`px-4 py-2 border-r last:border-r-0 border-foreground transition-colors ${activeTab === tab ? 'bg-foreground text-background' : 'hover:bg-muted/20'}`}
                 >
-                  {tab}
+                  {t(`home.tabs.${tab}`)}
                 </button>
               ))}
             </div>

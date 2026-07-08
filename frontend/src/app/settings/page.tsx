@@ -4,9 +4,12 @@ import React from 'react';
 import { useTheme } from 'next-themes';
 import { Settings as SettingsIcon, AlertTriangle, Shield, Eye, Volume2 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
+import { useTranslation, SUPPORTED_LOCALES } from '../../i18n';
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const { locale, setLocale } = useTranslation();
+
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 flex flex-col gap-6 bg-background text-foreground min-h-screen">
@@ -104,6 +107,28 @@ export default function SettingsPage() {
                       }`}
                     >
                       {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center border-t border-border pt-4">
+                <div>
+                  <h4 className="text-xs font-bold">Preferred Language</h4>
+                  <p className="text-[10px] text-muted-foreground">Select your primary language for marketplace interfaces.</p>
+                </div>
+                <div className="flex gap-1.5 flex-wrap justify-end max-w-[60%]">
+                  {SUPPORTED_LOCALES.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => setLocale(lang.code)}
+                      className={`px-2.5 py-1.5 rounded-xl border text-[10px] font-bold uppercase transition-all duration-200 ${
+                        locale === lang.code
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {lang.name}
                     </button>
                   ))}
                 </div>

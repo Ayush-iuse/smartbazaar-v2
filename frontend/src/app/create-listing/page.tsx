@@ -233,7 +233,8 @@ export default function CreateListingPage() {
         location,
         image_urls: imageUrls,
         allow_sale: allowSale,
-        allow_rental: allowRental
+        allow_rental: allowRental,
+        rental_price_per_day: allowRental && rentalDailyRate ? parseFloat(rentalDailyRate) : null
       };
 
       const res = await api.post('/api/listings', listingPayload);

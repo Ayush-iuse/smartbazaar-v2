@@ -10,10 +10,12 @@ import FraudBadge from '../../../components/FraudBadge';
 import AIBadge from '../../../components/AIBadge';
 import SellerProfileCard from '../../../components/SellerProfileCard';
 import OfferModal from '../../../components/OfferModal';
+import { useTranslation } from '../../../i18n';
+
 import { 
   MapPin, Calendar, Tag, ShieldCheck, 
   Send, Trash2, Edit3, MessageCircle, 
-  X, Check, AlertTriangle, Sparkles, Heart, TrendingUp
+  X, Check, AlertTriangle, Sparkles, Heart, TrendingUp, ShoppingBag
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
@@ -34,6 +36,9 @@ interface Listing {
   fraud_level: string;
   created_at: string;
   status: string;
+  allow_sale: boolean;
+  allow_rental: boolean;
+  rental_price_per_day?: number | null;
 }
 
 interface Message {
@@ -48,6 +53,7 @@ export default function ListingDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id;
+  const { t } = useTranslation();
 
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuthStore();
 
@@ -465,7 +471,7 @@ export default function ListingDetailPage() {
           {/* Description Card */}
           <Card className="p-6 space-y-4">
             <div className="flex justify-between items-center border-b border-border/40 pb-4">
-              <h2 className="text-xl font-bold text-foreground">Description</h2>
+              <h2 className="text-xl font-bold text-foreground">{t('listing.description')}</h2>
               {listing.fraud_score !== undefined && listing.fraud_score > 0 && (
                 <AIBadge label="AI Audited" />
               )}
@@ -475,44 +481,6 @@ export default function ListingDetailPage() {
             </p>
           </Card>
 
-          {/* Price History & Valuation Graph */}
-          <Card className="p-6 space-y-4">
-            <h3 className="text-sm font-black border-b border-border pb-3 flex items-center gap-1.5 uppercase tracking-tight">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              <span>AI Market Price History</span>
-            </h3>
-            <div className="space-y-4">
-              <div className="h-28 flex items-end justify-between gap-3 pt-6 border-b border-border/40 pb-1">
-                {[
-                  { label: "2 Weeks Ago", price: listing.price * 1.08, active: false },
-                  { label: "1 Week Ago", price: listing.price * 1.03, active: false },
-                  { label: "Today", price: listing.price, active: true }
-                ].map((pt, i) => {
-                  const maxVal = listing.price * 1.08;
-                  const barHeight = `${(pt.price / maxVal) * 100}%`;
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                      <span className="text-[9px] font-black text-muted-foreground group-hover:text-foreground font-mono transition-colors">
-                        ₹{pt.price.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                      </span>
-                      <div className="w-full relative rounded-t-lg overflow-hidden bg-muted/30 h-full flex items-end">
-                        <div 
-                          style={{ height: barHeight }} 
-                          className={`w-full transition-all duration-500 ${pt.active ? 'bg-primary' : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'}`} 
-                        />
-                      </div>
-                      <span className="text-[8px] font-black uppercase text-muted-foreground tracking-wider truncate max-w-full font-mono">
-                        {pt.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
-                SmartBazaar's valuation checks index average P2P listings daily. Local prices for this category have dropped slightly over the last fortnight.
-              </p>
-            </div>
-          </Card>
 
           {/* Safety Trading Guidelines */}
           <Card className="p-6 space-y-3.5">
@@ -616,46 +584,110 @@ export default function ListingDetailPage() {
                   </div>
                 ) : (
                   <>
-                    {/* Buy Now & Save Row */}
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        onClick={handleBuyNow}
-                        className="flex-1 h-12"
-                      >
-                        Buy Now
-                      </Button>
-                      
-                      {/* Heart Save Button */}
-                      <button
-                        type="button"
-                        onClick={handleToggleSave}
-                        className={`p-3 border rounded-xl shadow-sm transition-all h-12 flex items-center justify-center ${
-                          isSaved 
-                            ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' 
-                            : 'bg-card border-border text-muted-foreground hover:text-rose-500'
-                        }`}
-                        title={isSaved ? "Saved" : "Save Listing"}
-                      >
-                        <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-                      </button>
+                    {/* BUY / RENT / HYBRID action buttons */}
+                    <div className="flex flex-col gap-2">
+                      {listing.allow_sale && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            onClick={handleBuyNow}
+                            className="flex-1 h-12 bg-gradient-to-r from-primary to-indigo-600 text-white border-0 hover:opacity-90"
+                          >
+                            <ShoppingBag className="w-4 h-4" />
+                            {t('listing.buyNow')} — {formattedPrice}
+                          </Button>
+
+                          {/* Heart Save Button */}
+                          <button
+                            type="button"
+                            onClick={handleToggleSave}
+                            className={`p-3 border rounded-xl shadow-sm transition-all h-12 flex items-center justify-center ${
+                              isSaved
+                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-500'
+                                : 'bg-card border-border text-muted-foreground hover:text-rose-500'
+                            }`}
+                            title={isSaved ? t('listing.saved') : t('listing.saveToWishlist')}
+                          >
+                            <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                          </button>
+                        </div>
+                      )}
+
+                      {listing.allow_rental && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              if (!isAuthenticated) {
+                                router.push('/login');
+                                return;
+                              }
+                              // Open booking modal or scroll to calendar
+                              const calendarEl = document.getElementById('rental-calendar-section');
+                              if (calendarEl) {
+                                calendarEl.scrollIntoView({ behavior: 'smooth' });
+                              } else {
+                                router.push(`/rent?listing=${listing.id}`);
+                              }
+                            }}
+                            variant={listing.allow_sale ? 'outline' : 'primary'}
+                            className={`flex-1 h-12 ${!listing.allow_sale ? 'bg-blue-600 text-white border-0 hover:bg-blue-700' : ''}`}
+                          >
+                            <Calendar className="w-4 h-4" />
+                            {t('listing.rentNow')}
+                            {listing.rental_price_per_day && (
+                              <span className="text-[10px] font-normal ml-1 opacity-80">
+                                — ₹{listing.rental_price_per_day.toLocaleString('en-IN')}{t('listing.perDay')}
+                              </span>
+                            )}
+                          </Button>
+
+                          {/* Save button when no Buy Now to pair with */}
+                          {!listing.allow_sale && (
+                            <button
+                              type="button"
+                              onClick={handleToggleSave}
+                              className={`p-3 border rounded-xl shadow-sm transition-all h-12 flex items-center justify-center ${
+                                isSaved
+                                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-500'
+                                  : 'bg-card border-border text-muted-foreground hover:text-rose-500'
+                              }`}
+                              title={isSaved ? t('listing.saved') : t('listing.saveToWishlist')}
+                            >
+                              <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Rental info banner */}
+                      {listing.allow_rental && listing.rental_price_per_day && (
+                        <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[10px] text-blue-600 dark:text-blue-400 font-medium">
+                          <Calendar className="w-3 h-3 shrink-0" />
+                          <span>
+                            {t('listing.rentalInfo', { price: '₹' + listing.rental_price_per_day.toLocaleString('en-IN') })}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Make Offer Button */}
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        if (!isAuthenticated) {
-                          router.push('/login');
-                          return;
-                        }
-                        setIsOfferModalOpen(true);
-                      }}
-                      variant="outline"
-                      className="w-full h-11"
-                    >
-                      Make Offer
-                    </Button>
+                    {/* Make Offer Button — only show for sale listings */}
+                    {listing.allow_sale && (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (!isAuthenticated) {
+                            router.push('/login');
+                            return;
+                          }
+                          setIsOfferModalOpen(true);
+                        }}
+                        variant="outline"
+                        className="w-full h-11"
+                      >
+                        {t('listing.makeOffer')}
+                      </Button>
+                    )}
                   </>
                 )}
 
@@ -667,7 +699,7 @@ export default function ListingDetailPage() {
                   className="w-full h-11 bg-gradient-to-r from-primary to-indigo-600 border-0 hover:opacity-90 text-white shadow-md"
                 >
                   <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                  <span>{buyerAgentLoading ? 'Consulting Advisor...' : 'Should I Buy This?'}</span>
+                  <span>{buyerAgentLoading ? t('listing.consulting') : t('listing.shouldIBuy')}</span>
                 </Button>
 
                 <div className="p-2.5 bg-muted/30 border border-border/40 rounded-xl text-center">

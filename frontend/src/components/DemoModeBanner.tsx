@@ -4,22 +4,35 @@ import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WifiOff, RefreshCw, X } from 'lucide-react';
 import { useOfflineStore } from '../lib/store';
-import api from '../lib/api';
+import { useTranslation } from '../i18n';
 
 export default function DemoModeBanner() {
   const { isOffline, setIsOffline } = useOfflineStore();
   const [retrying, setRetrying] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const { t } = useTranslation();
 
   const handleReconnect = useCallback(async () => {
     setRetrying(true);
     try {
-      await api.get('/health');
-      // Backend is back — clear offline mode
-      setIsOffline(false);
-      setDismissed(false);
+      const baseURL =
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+          ? 'http://localhost:8000'
+          : '';
+
+      const res = await fetch(`${baseURL}/api/health`, {
+        method: 'GET',
+        cache: 'no-store',
+        signal: AbortSignal.timeout(8000),
+      });
+
+      if (res.ok) {
+        setIsOffline(false);
+        setDismissed(false);
+      }
     } catch {
-      // still down — remain in offline mode
+      // Still down — remain in offline/demo mode
     } finally {
       setRetrying(false);
     }
@@ -37,8 +50,10 @@ export default function DemoModeBanner() {
         >
           <div className="bg-amber-500 text-amber-950 flex items-center justify-between px-4 py-2 text-[10px] font-black uppercase tracking-wider">
             <div className="flex items-center gap-2">
-              <WifiOff className="w-3.5 h-3.5 shrink-0" />
-              <span>⚡ Backend unavailable — running in Demo Mode. Data shown is for demonstration only.</span>
+              <WifiOff className="w-3.5 h-3.5 shrink-0 animate-pulse" />
+              <span>
+                {t('common.demoMode')} — {t('common.demoWarning')}
+              </span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button
@@ -47,7 +62,7 @@ export default function DemoModeBanner() {
                 className="flex items-center gap-1 px-2 py-1 bg-amber-950 text-amber-50 hover:bg-amber-900 transition-colors disabled:opacity-60"
               >
                 <RefreshCw className={`w-3 h-3 ${retrying ? 'animate-spin' : ''}`} />
-                {retrying ? 'Reconnecting...' : 'Reconnect'}
+                {retrying ? 'Reconnecting...' : t('common.retryConnection')}
               </button>
               <button
                 onClick={() => setDismissed(true)}
