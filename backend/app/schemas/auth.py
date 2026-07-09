@@ -28,10 +28,16 @@ class UserResponse(BaseModel):
     full_name: Optional[str] = None
     is_admin: bool = False
     is_suspended: bool = False
+    preferred_language: str = "en"
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    preferred_language: Optional[str] = None
+
 
 class Token(BaseModel):
     access_token: str

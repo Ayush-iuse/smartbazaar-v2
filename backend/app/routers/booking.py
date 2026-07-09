@@ -1,17 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from backend.app.database import get_db
-from backend.app.models.rental import RentalListing, RentalBooking, RentalCalendar
+from backend.app.models.rental import (
+    RentalListing, RentalBooking, RentalCalendar,
+    RentalContract, RentalDeposit, RentalReturn
+)
 from backend.app.models.listing import Listing
 from backend.app.schemas.rental import (
-    RentalBookingCreate, RentalBookingCounter, RentalBookingExtend, RentalBookingResponse
+    RentalBookingCreate, RentalBookingCounter, RentalBookingExtend, RentalBookingResponse,
+    RentalContractCreate, RentalContractResponse,
+    InspectionCreate, InspectionResponse,
+    CalendarBlockRequest, SeasonalPricingRequest,
 )
 from backend.app.services.auth_service import get_current_user
 from backend.app.models.user import User
 
 router = APIRouter(prefix="/bookings", tags=["Bookings Management"])
+
+# ── Booking CRUD ──────────────────────────────────────────────────────────────
 
 @router.post("", response_model=RentalBookingResponse, status_code=status.HTTP_201_CREATED)
 def create_booking(
@@ -38,7 +46,7 @@ def create_booking(
     days = (req.end_date - req.start_date).days
     if days <= 0:
         days = 1  # Minimum 1 day calculation
-    
+
     daily_rate = rental.rental_daily_rate or 1000.0
     total_cost = (daily_rate * days) + rental.delivery_fee + rental.cleaning_fee + rental.insurance_fee
 
@@ -74,12 +82,12 @@ def get_booking(
     booking = db.query(RentalBooking).filter(RentalBooking.id == id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
-        
+
     # Verify ownership
     listing = db.query(Listing).filter(Listing.id == booking.listing_id).first()
     if booking.buyer_id != current_user.id and (not listing or listing.seller_id != current_user.id):
         raise HTTPException(status_code=403, detail="Not authorized to access this booking details")
-        
+
     return booking
 
 @router.patch("/{id}/approve", response_model=RentalBookingResponse)
@@ -92,7 +100,6 @@ def approve_booking(
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    # Verify current user owns listing
     listing = db.query(Listing).filter(Listing.id == booking.listing_id).first()
     if not listing or listing.seller_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to approve this booking")
@@ -140,7 +147,7 @@ def counter_booking(
         booking.start_date = req.counter_start_date
     if req.counter_end_date:
         booking.end_date = req.counter_end_date
-    
+
     booking.status = "Countered"
     db.commit()
     db.refresh(booking)
@@ -164,83 +171,122 @@ def cancel_booking(
     db.refresh(booking)
     return booking
 
+# ── Calendar ──────────────────────────────────────────────────────────────────
+
 @router.post("/calendar/block")
 def block_calendar_dates(
-    listing_id: int,
-    start_date: str,
-    end_date: str,
-    status: str = "Blocked",
+    req: CalendarBlockRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    from datetime import datetime, timedelta
-    start = datetime.strptime(start_date, "%Y-%m-%d").date()
-    end = datetime.strptime(end_date, "%Y-%m-%d").date()
-    
+    from datetime import timedelta
+    start = datetime.strptime(req.start_date, "%Y-%m-%d").date()
+    end = datetime.strptime(req.end_date, "%Y-%m-%d").date()
+
     current = start
     while current <= end:
-        # Check if exists
         existing = db.query(RentalCalendar).filter(
-            RentalCalendar.listing_id == listing_id,
+            RentalCalendar.listing_id == req.listing_id,
             RentalCalendar.date == current
         ).first()
         if existing:
-            existing.status = status
+            existing.status = req.status
         else:
-            db_cal = RentalCalendar(listing_id=listing_id, date=current, status=status)
+            db_cal = RentalCalendar(listing_id=req.listing_id, date=current, status=req.status)
             db.add(db_cal)
         current += timedelta(days=1)
-    
+
     db.commit()
     return {"detail": "Calendar dates updated successfully"}
 
 @router.post("/calendar/pricing")
 def set_seasonal_pricing(
-    listing_id: int,
-    date: str,
-    price_override: float,
+    req: SeasonalPricingRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    from datetime import datetime
-    target_date = datetime.strptime(date, "%Y-%m-%d").date()
+    target_date = datetime.strptime(req.date, "%Y-%m-%d").date()
     existing = db.query(RentalCalendar).filter(
-        RentalCalendar.listing_id == listing_id,
+        RentalCalendar.listing_id == req.listing_id,
         RentalCalendar.date == target_date
     ).first()
     if existing:
-        existing.seasonal_price_override = price_override
+        existing.seasonal_price_override = req.price_override
     else:
-        db_cal = RentalCalendar(listing_id=listing_id, date=target_date, status="Available", seasonal_price_override=price_override)
+        db_cal = RentalCalendar(
+            listing_id=req.listing_id,
+            date=target_date,
+            status="Available",
+            seasonal_price_override=req.price_override
+        )
         db.add(db_cal)
     db.commit()
     return {"detail": "Seasonal price override saved"}
 
 @router.get("/calendar/availability/{listing_id}")
 def get_availability(listing_id: int, db: Session = Depends(get_db)):
-    return db.query(RentalCalendar).filter(RentalCalendar.listing_id == listing_id).all()
+    rows = db.query(RentalCalendar).filter(RentalCalendar.listing_id == listing_id).all()
+    return [
+        {
+            "date": str(r.date),
+            "status": r.status,
+            "seasonal_price_override": r.seasonal_price_override
+        }
+        for r in rows
+    ]
 
-@router.post("/contracts")
+# ── Contracts ─────────────────────────────────────────────────────────────────
+
+@router.post("/contracts", response_model=RentalContractResponse, status_code=status.HTTP_201_CREATED)
 def create_rental_contract(
-    booking_id: int,
-    terms_text: str,
+    req: RentalContractCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    from backend.app.models.rental import RentalContract
+    # Verify booking exists and belongs to user
+    booking = db.query(RentalBooking).filter(RentalBooking.id == req.booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.buyer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to create contract for this booking")
+
+    # Check if contract already exists
+    existing = db.query(RentalContract).filter(RentalContract.booking_id == req.booking_id).first()
+    if existing:
+        # Update and mark as signed
+        existing.signature_status = True
+        existing.signed_at = datetime.utcnow()
+        db.commit()
+        db.refresh(existing)
+        return existing
+
     db_contract = RentalContract(
-        booking_id=booking_id,
-        terms_text=terms_text,
-        signature_status=False
+        booking_id=req.booking_id,
+        terms_text=req.terms_text,
+        signature_status=True,
+        signed_at=datetime.utcnow()
     )
     db.add(db_contract)
     db.commit()
     db.refresh(db_contract)
     return db_contract
 
+@router.get("/contracts/{booking_id}", response_model=RentalContractResponse)
+def get_contract_by_booking(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    contract = db.query(RentalContract).filter(RentalContract.booking_id == booking_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    return contract
+
+# ── Lifecycle ─────────────────────────────────────────────────────────────────
+
 @router.post("/pickup")
 def complete_pickup(
-    booking_id: int,
+    booking_id: int = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -253,7 +299,7 @@ def complete_pickup(
 
 @router.post("/return")
 def schedule_return(
-    booking_id: int,
+    booking_id: int = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -264,34 +310,30 @@ def schedule_return(
     db.commit()
     return {"status": "Returned", "detail": "Return registered successfully"}
 
-@router.post("/inspection")
+@router.post("/inspection", response_model=InspectionResponse, status_code=status.HTTP_201_CREATED)
 def submit_inspection(
-    booking_id: int,
-    damage_cost: float,
-    inspection_notes: str,
+    req: InspectionCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    from backend.app.models.rental import RentalReturn
     db_return = RentalReturn(
-        booking_id=booking_id,
+        booking_id=req.booking_id,
         inspector_id=current_user.id,
         status="Approved",
-        damage_cost=damage_cost,
-        inspection_notes=inspection_notes
+        damage_cost=req.damage_cost,
+        inspection_notes=req.inspection_notes
     )
     db.add(db_return)
-    
+
     # Update booking status
-    booking = db.query(RentalBooking).filter(RentalBooking.id == booking_id).first()
+    booking = db.query(RentalBooking).filter(RentalBooking.id == req.booking_id).first()
     if booking:
         booking.status = "Completed"
-    
-    # Process settlement release
+
+    # Process deposit release
     from backend.app.services.deposit_service import DepositService
-    DepositService.release_deposit(db, booking_id, deduction=damage_cost)
-    
+    DepositService.release_deposit(db, req.booking_id, deduction=req.damage_cost)
+
     db.commit()
-    return {"status": "Completed", "detail": "Inspection report registered and deposit released"}
-
-
+    db.refresh(db_return)
+    return db_return

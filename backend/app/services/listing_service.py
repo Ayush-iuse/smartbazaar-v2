@@ -41,7 +41,9 @@ def create_listing(db: Session, listing_in: ListingCreate, seller_id: int) -> Li
         fraud_score=fraud_score,
         fraud_level=fraud_level,
         allow_sale=listing_in.allow_sale,
-        allow_rental=listing_in.allow_rental
+        allow_rental=listing_in.allow_rental,
+        rental_price_per_day=listing_in.rental_price_per_day
+
     )
     db.add(db_listing)
     db.flush()  # flush to get db_listing.id before creating ListingScore

@@ -32,24 +32,35 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_production_keys(self) -> 'Settings':
         if self.APP_ENV == "production":
-            # Database URL validation
+            # Database URL validation — SQLite is not allowed in production
             if not self.DATABASE_URL or "sqlite" in self.DATABASE_URL:
-                raise ValueError("DATABASE_URL must point to a production database (non-SQLite) in production mode.")
-            
-            # Supabase credentials validation
+                raise ValueError(
+                    "DATABASE_URL must point to a production database (non-SQLite) in production mode. "
+                    "Set DATABASE_URL in Vercel dashboard → Project Settings → Environment Variables."
+                )
+
+            # JWT Secret validation
+            if self.JWT_SECRET == "supersecretkeychangeinproduction12345!":
+                raise ValueError(
+                    "JWT_SECRET must be changed from the default insecure value in production. "
+                    "Set JWT_SECRET in Vercel dashboard → Project Settings → Environment Variables."
+                )
+
+            # Supabase is optional — the app uses direct PostgreSQL via DATABASE_URL.
+            # Warn if keys are missing but don't block startup.
+            import logging as _log
+            _logger = _log.getLogger("uvicorn")
             missing_supabase = []
             if not self.SUPABASE_URL:
                 missing_supabase.append("SUPABASE_URL")
             if not self.SUPABASE_ANON_KEY:
                 missing_supabase.append("SUPABASE_ANON_KEY")
-            if not self.SUPABASE_SERVICE_ROLE_KEY:
-                missing_supabase.append("SUPABASE_SERVICE_ROLE_KEY")
             if missing_supabase:
-                raise ValueError(f"Missing required Supabase credentials in production: {', '.join(missing_supabase)}")
-            
-            # JWT Secret validation
-            if self.JWT_SECRET == "supersecretkeychangeinproduction12345!":
-                raise ValueError("JWT_SECRET must be changed to a secure secret in production.")
+                _logger.warning(
+                    f"[Config] Supabase credentials not set: {', '.join(missing_supabase)}. "
+                    "Supabase Auth features will be unavailable, but direct DB access will work."
+                )
+
         return self
 
     class Config:

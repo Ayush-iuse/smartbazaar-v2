@@ -36,7 +36,7 @@ from backend.app.models.buyer_timeline import BuyerTimeline
 from backend.app.models.risk_score import RiskScore
 
 def seed_database():
-    # If production environment or Supabase database detected, skip schema teardown and verify if data exists
+    # If production environment or remote Supabase DB detected, skip schema teardown and verify if data exists
     is_production = (
         os.getenv("APP_ENV") == "production"
         or "supabase.co" in str(engine.url)
@@ -44,17 +44,17 @@ def seed_database():
     
     db = SessionLocal()
     try:
+        # Check if users already exist to support data persistence on container restart
+        try:
+            user_count = db.query(User).count()
+            if user_count > 0:
+                print(f"Database already contains {user_count} users. Skipping re-initialization and seeding to persist data.")
+                return
+        except Exception as e:
+            print("Database empty or tables do not exist. Proceeding with migration and seeding...")
+
         if is_production:
             print("Production environment or remote Supabase DB detected. Skipping database teardown.")
-            try:
-                user_count = db.query(User).count()
-                if user_count > 0:
-                    print(f"Database already contains {user_count} users. Skipping seeding to prevent overwriting production data.")
-                    return
-            except Exception as e:
-                print(f"Checking for existing database data: {e}")
-                print("Tables might not exist yet. Please run backend startup first to apply migrations.")
-                return
         else:
             print("Re-initializing tables...")
             if engine.url.drivername.startswith("postgresql"):

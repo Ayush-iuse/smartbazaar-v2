@@ -20,6 +20,7 @@ class Listing(Base):
     is_featured = Column(Boolean, default=False)
     allow_sale = Column(Boolean, default=True, nullable=False)
     allow_rental = Column(Boolean, default=False, nullable=False)
+    rental_price_per_day = Column(Float, nullable=True)  # Daily rental rate (null if not rented)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

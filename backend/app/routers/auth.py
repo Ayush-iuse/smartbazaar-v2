@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from backend.app.database import get_db
-from backend.app.schemas.auth import UserCreate, UserResponse, Token
+from backend.app.schemas.auth import UserCreate, UserResponse, Token, UserUpdate
+
 from backend.app.services.auth_service import create_user, authenticate_user, get_current_user, get_user_by_email, record_login_attempt
 from backend.app.services.trust_service import TrustService
 from backend.app.utils.jwt import create_access_token
@@ -44,6 +45,21 @@ def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+@router.patch("/me", response_model=UserResponse)
+def patch_me(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if user_update.full_name is not None:
+        current_user.full_name = user_update.full_name
+    if user_update.preferred_language is not None:
+        current_user.preferred_language = user_update.preferred_language
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
 
 @seller_router.get("/trust-score/{seller_id}")
 def read_seller_trust_score(seller_id: int, db: Session = Depends(get_db)):

@@ -1,43 +1,43 @@
-# Tasks: SmartBazaar Rental Marketplace
+# V6 Enterprise Task Tracker
 
-**Input**: Design documents from `/specs/010-rental-marketplace/`
+## Phase 1: Demo Mode Fix (CRITICAL)
+- [x] DEMO-001 Fix api.ts — remove auto-offline on individual request errors
+- [x] DEMO-002 Enhance SessionProvider — retry logic + periodic re-check
+- [x] DEMO-003 Add recovery toast when backend reconnects
 
----
+## Phase 2: Real Backend Connections
+- [x] BACK-001 Homepage — fetch categories dynamically from analytics API
+- [x] BACK-002 Homepage — remove hardcoded category counts
+- [x] BACK-003 Listing detail — add allow_sale/allow_rental to interface
+- [x] BACK-004 Listing detail — conditional Buy Now / Rent Now / Both buttons
+- [x] BACK-005 Listing detail — remove fake price history bars
+- [x] BACK-006 Analytics page — add user-specific /api/analytics/my endpoint
+- [ ] BACK-007 Remove localStorage recently viewed — use DB endpoint
 
-## Phase 1: Setup (Shared Infrastructure)
+## Phase 3: Sell/Rent/Hybrid Model
+- [x] RENT-001 Verify listing model has allow_sale, allow_rental, rental_price_per_day
+- [x] RENT-002 Expose rental fields in listing response schema
+- [x] RENT-003 ListingCard — add FOR SALE / FOR RENT / BUY & RENT badges
+- [x] RENT-004 Create listing page — verify sell/rent toggle saves correctly
 
-- [x] RNT-001 Audit current database schemas and files structure to identify integration points in `backend/app/models/` and `frontend/src/app/`
-- [x] RNT-004 Validate local deployment settings and verify docker configuration in `docker-compose.yml`
+## Phase 4: Rental Marketplace Page
+- [ ] MKTPL-001 Redesign /rent page as dedicated rental marketplace
 
----
+## Phase 5: User Ownership Filters
+- [x] OWN-001 Backend — add /api/analytics/my (user-specific)
 
-## Phase 2: Foundational (Blocking Prerequisites)
+- [ ] OWN-002 Verify notifications are per-user
+- [ ] OWN-003 Verify dashboards only show own data
 
-- [x] RNT-002 [P] Create database migration framework and initial alembic setup script in `backend/alembic/env.py`
-- [x] RNT-003 Verify backward compatibility and check existing active listings queries in `backend/app/routers/listings.py`
-- [x] RNT-005 [P] Implement rental listing table schema mapping class in `backend/app/models/rental.py`
-- [x] RNT-006 [P] Implement rental bookings table schema mapping class in `backend/app/models/rental.py`
-- [x] RNT-007 [P] Implement availability calendar table schema mapping class in `backend/app/models/rental.py`
-- [x] RNT-008 [P] Implement rental contracts table schema mapping class in `backend/app/models/rental.py`
-- [x] RNT-009 [P] Implement deposits table schema mapping class in `backend/app/models/rental.py`
-- [x] RNT-010 [P] Implement return workflows table schema mapping class in `backend/app/models/rental.py`
-- [x] RNT-011 Define indexes for dates and listing foreign keys in `backend/app/models/rental.py`
-- [x] RNT-012 Wire relationship cascades between listings, bookings, and returns in `backend/app/models/rental.py`
+## Phase 6: Internationalization
+- [x] I18N-001 Create /i18n/ directory with 10 language JSON files
+- [x] I18N-002 Create useTranslation() hook
+- [x] I18N-003 Add preferred_language to user model/profile
+- [ ] I18N-004 Apply i18n to Navbar
+- [ ] I18N-005 Apply i18n to Homepage
+- [ ] I18N-006 Apply i18n to Listing Detail
+- [x] I18N-007 Language switcher in Navbar
 
----
-
-## Phase 3: User Story 1 - Create Rental Listings (Priority: P1)
-
-**Story Goal**: Allow sellers to list items for rent, buy, or hybrid with custom rental pricing packages.
-
-**Independent Test**: Create a listing using mock parameters and confirm it appears in GET queries with correct options.
-
-- [x] RNT-013 [P] [US1] Support standard buy options parameters in `backend/app/schemas/rental.py`
-- [x] RNT-014 [P] [US1] Support toggle switches for rental items in `frontend/src/app/create-listing/page.tsx`
-- [x] RNT-015 [US1] Handle hybrid listing validation rules in `backend/app/routers/listings.py`
-- [x] RNT-016 [US1] Implement multi-price models calculator in `backend/app/services/rental_service.py`
-- [x] RNT-053 [P] [US1] Implement AI suggested rental price endpoint with confidence score in `backend/app/routers/ai.py`
-- [x] RNT-057 [P] [US1] Implement AI security deposit suggestion recommendations in `backend/app/routers/ai.py`
 
 ---
 

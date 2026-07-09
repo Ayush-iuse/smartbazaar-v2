@@ -67,19 +67,27 @@ async def lifespan(app: FastAPI):
             "CRITICAL: Database is unreachable. Booting application in degraded mode."
         )
     else:
-        try:
-            logger.info("Running database migrations via Alembic...")
-            from alembic.config import Config
-            from alembic import command
-            alembic_ini_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../alembic.ini"))
-            alembic_cfg = Config(alembic_ini_path)
-            command.upgrade(alembic_cfg, "head")
-            logger.info("Database migrations applied successfully.")
-        except Exception as e:
-            logger.critical(f"Failed to run database migrations: {e}")
+        if os.getenv("VERCEL") or settings.APP_ENV == "production":
+            logger.info("Skipping database migrations on startup in serverless/production mode.")
+        else:
+            try:
+                logger.info("Running database migrations via Alembic...")
+                from alembic.config import Config
+                from alembic import command
+                alembic_ini_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../alembic.ini"))
+                alembic_cfg = Config(alembic_ini_path)
+                command.upgrade(alembic_cfg, "head")
+                logger.info("Database migrations applied successfully.")
+                
+                logger.info("Checking and seeding database if empty...")
+                from backend.app.seed import seed_database
+                seed_database()
+            except Exception as e:
+                logger.critical(f"Failed to run database migrations/seeding: {e}")
 
     import asyncio
-    asyncio.create_task(JobService.run_worker())
+    if not os.getenv("VERCEL") and settings.APP_ENV != "production":
+        asyncio.create_task(JobService.run_worker())
     yield
 
 app = FastAPI(
@@ -93,6 +101,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
+    # Covers main domain, preview deployments, and any team/branch suffixes
+    allow_origin_regex=r"https://[a-zA-Z0-9_-]+\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -100,8 +110,13 @@ app.add_middleware(
 app.add_middleware(TelemetryMiddleware)
 
 
-# Serve upload files
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+# Serve upload files — safe mount: Vercel serverless has a read-only FS
+# so we skip mounting if the directory doesn't exist (images go via Cloudinary in prod)
+try:
+    if os.path.isdir("uploads"):
+        app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+except Exception as _mount_err:
+    logger.warning(f"StaticFiles /uploads mount skipped: {_mount_err}")
 
 
 
@@ -131,5 +146,5 @@ app.include_router(booking.router, prefix="/api")
 app.include_router(rental_analytics.router, prefix="/api")
 app.include_router(ai_commerce.router, prefix="/api")
 app.include_router(business.router, prefix="/api")
-app.include_router(observability.router)  # top-level ready and metrics
+app.include_router(observability.router, prefix="/api")  # /api/health and metrics
 

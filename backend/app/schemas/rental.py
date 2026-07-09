@@ -72,4 +72,49 @@ class RentalFeeBreakdown(BaseModel):
     tax: float
     grand_total: float
 
+# ── Contract ──────────────────────────────────────────────────────────────────
 
+class RentalContractCreate(BaseModel):
+    booking_id: int
+    terms_text: str
+
+class RentalContractResponse(BaseModel):
+    id: int
+    booking_id: int
+    terms_text: str
+    signature_status: bool
+    signed_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+# ── Inspection / Return ────────────────────────────────────────────────────────
+
+class InspectionCreate(BaseModel):
+    booking_id: int
+    damage_cost: float = Field(default=0.0, ge=0)
+    inspection_notes: str = ""
+
+class InspectionResponse(BaseModel):
+    id: int
+    booking_id: int
+    inspector_id: int
+    status: str
+    damage_cost: float
+    inspection_notes: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+# ── Calendar ──────────────────────────────────────────────────────────────────
+
+class CalendarBlockRequest(BaseModel):
+    listing_id: int
+    start_date: str   # "YYYY-MM-DD"
+    end_date: str     # "YYYY-MM-DD"
+    status: str = "Blocked"
+
+class SeasonalPricingRequest(BaseModel):
+    listing_id: int
+    date: str         # "YYYY-MM-DD"
+    price_override: float

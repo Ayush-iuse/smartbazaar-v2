@@ -10,16 +10,22 @@ const POLL_INTERVAL_MS = 60000; // Re-check every 60 seconds
 
 async function checkBackendHealth(): Promise<boolean> {
   try {
-    const baseURL =
+    // On Vercel the health endpoint is served via the vercel.json rewrite
+    // at the same origin — use a relative URL so it works in all environments.
+    // On localhost we call the FastAPI server directly at port 8000.
+    const isLocalhost =
       typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? 'http://localhost:8000'
-        : '';
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-    const res = await fetch(`${baseURL}${HEALTH_CHECK_URL}`, {
+    const url = isLocalhost
+      ? 'http://localhost:8000/health'
+      : '/api/health';
+
+    const res = await fetch(url, {
       method: 'GET',
       cache: 'no-store',
-      signal: AbortSignal.timeout(8000),
+      // 12 s — generous for Vercel Python cold starts (~5-8 s typical)
+      signal: AbortSignal.timeout(12000),
     });
     return res.ok;
   } catch {

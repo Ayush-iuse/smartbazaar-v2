@@ -147,6 +147,32 @@ function resolveMockResponse(config: any) {
     data = mock.MOCK_ADMIN_SETTINGS;
   } else if (url.includes('/api/admin/audit-logs')) {
     data = mock.MOCK_ADMIN_AUDIT_LOGS;
+  } else if (url.includes('/api/bookings/contracts/')) {
+    // GET existing contract
+    data = { id: 1, booking_id: 1, terms_text: 'Demo contract', signature_status: false, signed_at: null };
+  } else if (url.includes('/api/bookings/contracts')) {
+    // POST sign contract
+    data = { id: 1, booking_id: 1, terms_text: 'Demo contract', signature_status: true, signed_at: new Date().toISOString() };
+  } else if (url.includes('/api/bookings/calendar/availability/')) {
+    // GET calendar availability
+    data = [
+      { date: new Date().toISOString().split('T')[0], status: 'Available', seasonal_price_override: null },
+    ];
+  } else if (url.includes('/api/bookings/calendar/block')) {
+    data = { detail: 'Calendar dates updated successfully (demo)' };
+  } else if (url.includes('/api/bookings/calendar/pricing')) {
+    data = { detail: 'Seasonal price override saved (demo)' };
+  } else if (url.includes('/api/bookings/inspection')) {
+    data = { id: 1, booking_id: 1, inspector_id: 1, status: 'Approved', damage_cost: 0, inspection_notes: 'Demo mode' };
+  } else if (url.includes('/api/bookings/') && method === 'patch') {
+    // approve / reject / cancel
+    data = { id: 1, listing_id: 1, buyer_id: 1, start_date: new Date().toISOString(), end_date: new Date().toISOString(), status: 'Confirmed', total_cost: 2000, instant_book: false, created_at: new Date().toISOString() };
+  } else if (url.includes('/api/bookings')) {
+    if (method === 'get') {
+      data = [];
+    } else {
+      data = { id: Math.floor(Math.random() * 1000) + 10, listing_id: 1, buyer_id: 1, start_date: new Date().toISOString(), end_date: new Date().toISOString(), status: 'Pending', total_cost: 2000, instant_book: false, created_at: new Date().toISOString() };
+    }
   } else {
     data = {};
   }

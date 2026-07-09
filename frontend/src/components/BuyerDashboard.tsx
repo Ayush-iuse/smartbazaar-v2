@@ -1,12 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import api from '../lib/api';
 import { useAuthStore } from '../lib/store';
 import ListingCard, { Listing } from './ListingCard';
 import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
 import { Badge } from './ui/Badge';
-import { Heart, Send, MessageCircle, Eye, Sparkles, AlertCircle, ArrowRight, Bell, User, Tag, ShoppingBag } from 'lucide-react';
+import ContractViewer from './ContractViewer';
+import { Heart, Send, MessageCircle, Eye, Sparkles, AlertCircle, ArrowRight, Bell, User, Tag, ShoppingBag, Calendar, Key, CheckCircle2, Clock, XCircle } from 'lucide-react';
+
+const listVariants: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
+};
+const listItemVariants: Variants = {
+  hidden: { opacity: 0, x: -14 },
+  visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 240, damping: 22 } },
+};
+
+const STATUS_ICON: Record<string, React.ReactNode> = {
+  Pending: <Clock className="w-3.5 h-3.5 text-amber-500" />,
+  Confirmed: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />,
+  Active: <Key className="w-3.5 h-3.5 text-blue-500" />,
+  Completed: <CheckCircle2 className="w-3.5 h-3.5 text-primary" />,
+  Cancelled: <XCircle className="w-3.5 h-3.5 text-rose-500" />,
+  Rejected: <XCircle className="w-3.5 h-3.5 text-rose-500" />,
+};
+const STATUS_BADGE: Record<string, string> = {
+  Pending: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
+  Confirmed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
+  Active: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
+  Completed: 'bg-primary/10 text-primary border-primary/30',
+  Cancelled: 'bg-rose-500/10 text-rose-600 border-rose-500/30',
+  Rejected: 'bg-rose-500/10 text-rose-600 border-rose-500/30',
+};
 
 export default function BuyerDashboard() {
   const router = useRouter();
@@ -17,6 +45,8 @@ export default function BuyerDashboard() {
   const [conversations, setConversations] = useState<any[]>([]);
   const [recentlyViewed, setRecentlyViewed] = useState<Listing[]>([]);
   const [recommendations, setRecommendations] = useState<Listing[]>([]);
+  const [activeRentals, setActiveRentals] = useState<any[]>([]);
+  const [contractModal, setContractModal] = useState<any | null>(null);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +93,15 @@ export default function BuyerDashboard() {
         } catch (e) {
           console.error('Failed to load recently viewed from DB', e);
         }
-        
+
+        // 6. Fetch Rental Bookings
+        try {
+          const bookRes = await api.get('/api/bookings');
+          setActiveRentals(bookRes.data || []);
+        } catch (e) {
+          console.error('Failed to load rental bookings', e);
+        }
+
         setError(null);
       } catch (err: any) {
         console.error(err);
@@ -199,7 +237,98 @@ export default function BuyerDashboard() {
           )}
         </div>
 
+        {/* ── Active Rentals ── */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-sm space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+            <Calendar className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Active Rentals</h2>
+            {activeRentals.length > 0 && (
+              <span className="ml-auto text-[9px] font-black bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20">
+                {activeRentals.length}
+              </span>
+            )}
+          </div>
+          {activeRentals.length === 0 ? (
+            <p className="text-xs text-slate-400 dark:text-slate-500 py-6 text-center">
+              No rental bookings yet. Browse the <a href="/rent" className="text-primary underline font-bold">Rentals</a> marketplace!
+            </p>
+          ) : (
+            <motion.div
+              variants={listVariants}
+              initial="hidden"
+              animate="visible"
+              className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[360px] overflow-y-auto pr-1 space-y-0.5"
+            >
+              {activeRentals.map((b: any) => (
+                <motion.div
+                  key={b.id}
+                  variants={listItemVariants}
+                  className="py-3.5 flex items-center justify-between gap-3 group"
+                >
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      {STATUS_ICON[b.status] || <Clock className="w-3.5 h-3.5 text-muted-foreground" />}
+                      <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 truncate">
+                        Booking #{b.id} — Listing #{b.listing_id}
+                      </h4>
+                    </div>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+                      {new Date(b.start_date).toLocaleDateString()} → {new Date(b.end_date).toLocaleDateString()}
+                    </p>
+                    <p className="text-[10px] font-bold text-primary font-mono">₹{b.total_cost?.toLocaleString()}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${STATUS_BADGE[b.status] || 'bg-muted/20 text-muted-foreground border-border/30'}`}>
+                      {b.status}
+                    </span>
+                    {b.status === 'Confirmed' && (
+                      <button
+                        onClick={() => setContractModal(b)}
+                        className="text-[9px] font-black text-primary underline hover:no-underline"
+                      >
+                        View Contract
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </div>
+
       </div>
+
+      {/* ── Contract Modal ── */}
+      <AnimatePresence>
+        {contractModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setContractModal(null); }}
+          >
+            <motion.div
+              initial={{ scale: 0.93, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.93, y: 20 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+              className="w-full max-w-xl"
+            >
+              <ContractViewer
+                bookingId={contractModal.id}
+                itemTitle={`Listing #${contractModal.listing_id}`}
+                buyerName={user?.full_name || 'Buyer'}
+                sellerName={'Seller'}
+                depositAmount={contractModal.total_cost || 0}
+                startDate={new Date(contractModal.start_date).toLocaleDateString()}
+                endDate={new Date(contractModal.end_date).toLocaleDateString()}
+                onSignComplete={() => setContractModal(null)}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Saved Listings / Wishlist */}
       <div className="space-y-4">

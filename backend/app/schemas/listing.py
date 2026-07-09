@@ -12,6 +12,7 @@ class ListingCreate(BaseModel):
     image_urls: List[str] = Field(default=[], max_items=4, description="Up to 4 image URLs")
     allow_sale: bool = True
     allow_rental: bool = False
+    rental_price_per_day: Optional[float] = None
 
 class ListingUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -22,6 +23,7 @@ class ListingUpdate(BaseModel):
     image_urls: Optional[List[str]] = Field(None, max_items=4)
     allow_sale: Optional[bool] = None
     allow_rental: Optional[bool] = None
+    rental_price_per_day: Optional[float] = None
 
 class ListingResponse(BaseModel):
     id: int
@@ -39,6 +41,7 @@ class ListingResponse(BaseModel):
     saves_count: int = 0
     allow_sale: bool = True
     allow_rental: bool = False
+    rental_price_per_day: Optional[float] = None
     created_at: datetime
 
     class Config:

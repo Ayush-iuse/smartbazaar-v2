@@ -29,6 +29,14 @@ def read_my_listings(
     from backend.app.models.listing import Listing
     return db.query(Listing).filter(Listing.seller_id == current_user.id).order_by(Listing.created_at.desc()).all()
 
+@router.get("/recently-viewed")
+def read_recently_viewed(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return RecentlyViewedService.get_recently_viewed(db, current_user.id)
+
+
 @router.get("", response_model=List[ListingResponse])
 def read_listings(
     page: int = 1,

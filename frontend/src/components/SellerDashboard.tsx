@@ -12,8 +12,19 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { 
   Plus, Trash2, ShieldAlert, Sparkles, MessageSquare, 
-  Check, X, FileText, ArrowRight, Activity, TrendingUp, Key, SlidersHorizontal
+  Check, X, FileText, ArrowRight, Activity, TrendingUp, Key, SlidersHorizontal,
+  Calendar, CheckCircle2, Clock, XCircle, RefreshCw
 } from 'lucide-react';
+
+const BOOKING_STATUS_BADGE: Record<string, string> = {
+  Pending: 'bg-amber-500/10 text-amber-600 border-amber-500/30',
+  Confirmed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
+  Active: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
+  Completed: 'bg-primary/10 text-primary border-primary/30',
+  Cancelled: 'bg-rose-500/10 text-rose-600 border-rose-500/30',
+  Rejected: 'bg-rose-500/10 text-rose-600 border-rose-500/30',
+  Countered: 'bg-violet-500/10 text-violet-600 border-violet-500/30',
+};
 
 export default function SellerDashboard() {
   const router = useRouter();
@@ -25,6 +36,8 @@ export default function SellerDashboard() {
   const [conversations, setConversations] = useState<any[]>([]);
   const [trustScore, setTrustScore] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
+  const [rentalBookings, setRentalBookings] = useState<any[]>([]);
+  const [bookingLoading, setBookingLoading] = useState<Record<number, string>>({});
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +98,18 @@ export default function SellerDashboard() {
         console.error('Analytics my fetch failed', e);
       }
 
+      // 6. Fetch Rental Bookings (for seller's items)
+      try {
+        const bookRes = await api.get('/api/bookings');
+        const sellerBooks = (bookRes.data || []).filter((b: any) => {
+          // We get all bookings for our listings too, just show non-buyer bookings
+          return true;
+        });
+        setRentalBookings(sellerBooks);
+      } catch (e) {
+        console.error('Rental bookings fetch failed', e);
+      }
+
       setError(null);
     } catch (err: any) {
       console.error(err);
@@ -129,6 +154,30 @@ export default function SellerDashboard() {
     } catch (err: any) {
       console.error(err);
       alert(formatError(err));
+    }
+  };
+
+  const handleApproveBooking = async (id: number) => {
+    setBookingLoading((prev) => ({ ...prev, [id]: 'approving' }));
+    try {
+      await api.patch(`/api/bookings/${id}/approve`);
+      setRentalBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: 'Confirmed' } : b));
+    } catch (err: any) {
+      alert(formatError(err) || 'Failed to approve booking');
+    } finally {
+      setBookingLoading((prev) => { const c = { ...prev }; delete c[id]; return c; });
+    }
+  };
+
+  const handleRejectBooking = async (id: number) => {
+    setBookingLoading((prev) => ({ ...prev, [id]: 'rejecting' }));
+    try {
+      await api.patch(`/api/bookings/${id}/reject`);
+      setRentalBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: 'Rejected' } : b));
+    } catch (err: any) {
+      alert(formatError(err) || 'Failed to reject booking');
+    } finally {
+      setBookingLoading((prev) => { const c = { ...prev }; delete c[id]; return c; });
     }
   };
 
@@ -385,7 +434,92 @@ export default function SellerDashboard() {
 
       </div>
 
-      {/* Seller CRM Kanban Lead Pipeline */}
+      {/* ── Rental Booking Requests ── */}
+      <div className="space-y-4 border-t border-border/40 pt-8">
+        <div className="flex items-center justify-between border-b border-border/40 pb-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-black text-foreground uppercase tracking-tight">Rental Booking Requests</h2>
+            {rentalBookings.filter((b: any) => b.status === 'Pending').length > 0 && (
+              <span className="bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                {rentalBookings.filter((b: any) => b.status === 'Pending').length} pending
+              </span>
+            )}
+          </div>
+          <button onClick={fetchSellerData} className="text-[9px] text-muted-foreground hover:text-primary font-bold flex items-center gap-1 transition-colors">
+            <RefreshCw className="w-3 h-3" /> Refresh
+          </button>
+        </div>
+
+        {rentalBookings.length === 0 ? (
+          <Card className="p-8 text-center">
+            <Calendar className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-xs text-muted-foreground">No rental bookings yet. Enable rentals on your listings to start receiving bookings.</p>
+          </Card>
+        ) : (
+          <motion.div
+            variants={staggerContainerVariants(0.05, 0.07)}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
+            {rentalBookings.map((b: any) => (
+              <motion.div
+                key={b.id}
+                variants={fadeInUpVariants(reduced)}
+                className="bg-card border border-border/30 rounded-2xl p-4 space-y-3 hover:border-primary/30 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="text-xs font-black text-foreground truncate">
+                        Booking #{b.id} — Listing #{b.listing_id}
+                      </h4>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground font-mono">
+                      {new Date(b.start_date).toLocaleDateString()} → {new Date(b.end_date).toLocaleDateString()}
+                    </p>
+                    <p className="text-[10px] font-black text-primary font-mono">₹{b.total_cost?.toLocaleString()}</p>
+                  </div>
+                  <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${BOOKING_STATUS_BADGE[b.status] || 'bg-muted/20 text-muted-foreground border-border/30'}`}>
+                    {b.status}
+                  </span>
+                </div>
+
+                {b.status === 'Pending' && (
+                  <div className="flex gap-2 pt-1 border-t border-border/20">
+                    <Button
+                      size="sm"
+                      onClick={() => handleApproveBooking(b.id)}
+                      disabled={!!bookingLoading[b.id]}
+                      className="flex-1 h-8 text-[9px] font-black uppercase tracking-wider bg-emerald-500 hover:bg-emerald-600 text-white"
+                    >
+                      {bookingLoading[b.id] === 'approving' ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <><Check className="w-3 h-3 mr-1" /> Approve</>  
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRejectBooking(b.id)}
+                      disabled={!!bookingLoading[b.id]}
+                      className="flex-1 h-8 text-[9px] font-black uppercase tracking-wider border-rose-500/40 text-rose-500 hover:bg-rose-500/10"
+                    >
+                      {bookingLoading[b.id] === 'rejecting' ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <><X className="w-3 h-3 mr-1" /> Reject</>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </div>
       <div className="space-y-4 border-t border-border/40 pt-10">
         <div className="flex items-center justify-between border-b border-border/40 pb-3">
           <div>
