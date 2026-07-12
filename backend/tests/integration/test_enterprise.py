@@ -11,17 +11,17 @@ from backend.app.utils.jwt import create_access_token
 
 def test_observability_endpoints(client):
     # Test health check (existing)
-    res = client.get("/health")
+    res = client.get("/api/health")
     assert res.status_code == 200
     assert res.json()["status"] == "healthy"
 
     # Test /ready
-    res = client.get("/ready")
+    res = client.get("/api/ready")
     assert res.status_code == 200
     assert res.json()["status"] == "ready"
 
     # Test /metrics
-    res = client.get("/metrics")
+    res = client.get("/api/metrics")
     assert res.status_code == 200
     data = res.json()
     assert "total_requests" in data
