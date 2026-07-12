@@ -41,6 +41,7 @@ from backend.app.models.search_history import SearchHistory
 from backend.app.models.analytics_snapshot import AnalyticsSnapshot
 from backend.app.models.copilot import CopilotSession, CopilotMessage, CopilotMemory, CopilotAction
 from backend.app.models.enterprise import SystemSetting, Report, Notification, SavedSearch, PriceWatch, AuditLog, BackgroundJob, LoginHistory
+from backend.app.models.rental import RentalListing, RentalBooking, RentalCalendar, RentalContract, RentalDeposit, RentalReturn
 
 
 # this is the Alembic Config object, which provides

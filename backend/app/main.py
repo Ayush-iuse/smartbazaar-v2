@@ -1,16 +1,30 @@
 import sys
 import os
+
+# ── Vercel Monorepo Backend Path Bootstrap ─────────────────────────────────────
+# Vercel serverless runs from "/var/task" (renaming backend/). To make
+# "from backend.app..." imports resolve without changing any files, we create
+# a virtual "backend" folder in the writable "/tmp" directory and symlink "app".
+if os.getenv("VERCEL") == "1":
+    import os
+    import sys
+    try:
+        os.makedirs("/tmp/backend", exist_ok=True)
+        if not os.path.exists("/tmp/backend/app"):
+            os.symlink("/var/task/app", "/tmp/backend/app")
+        if "/tmp" not in sys.path:
+            sys.path.insert(0, "/tmp")
+    except Exception as _symlink_err:
+        print(f"Vercel path bootstrap warning: {_symlink_err}")
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from backend.app.database import engine, Base
-from backend.app.routers import auth, listings, search, messages, ai, analytics, offers, wishlist, chat, trust, copilot, admin, notifications, saved_searches, price_watch, reports, observability, rental, booking, rental_analytics, ai_commerce, business
-from backend.app.routers.observability import TelemetryMiddleware
-from backend.app.services.job_service import JobService
-from backend.app.config import settings
-# Import all models to ensure they are registered in the Base.metadata
+# Import all models first to ensure they are registered in Base.metadata before mappers compile
 from backend.app.models.user import User
 from backend.app.models.listing import Listing
 from backend.app.models.offer import Offer
@@ -32,6 +46,12 @@ from backend.app.models.copilot import CopilotSession, CopilotMessage, CopilotMe
 from backend.app.models.enterprise import SystemSetting, Report, Notification, SavedSearch, PriceWatch, AuditLog, BackgroundJob, LoginHistory
 from backend.app.models.rental import RentalListing, RentalBooking, RentalCalendar, RentalContract, RentalDeposit, RentalReturn
 
+from backend.app.database import engine, Base
+from backend.app.routers import auth, listings, search, messages, ai, analytics, offers, wishlist, chat, trust, copilot, admin, notifications, saved_searches, price_watch, reports, observability, rental, booking, rental_analytics, ai_commerce, business
+from backend.app.routers.observability import TelemetryMiddleware
+from backend.app.services.job_service import JobService
+from backend.app.config import settings
+
 from contextlib import asynccontextmanager
 import logging
 from sqlalchemy import text
@@ -40,9 +60,12 @@ logger = logging.getLogger("uvicorn")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    os.makedirs("uploads/chat", exist_ok=True)
-    os.makedirs("uploads/listings", exist_ok=True)
-    os.makedirs("uploads/verification", exist_ok=True)
+    try:
+        os.makedirs("uploads/chat", exist_ok=True)
+        os.makedirs("uploads/listings", exist_ok=True)
+        os.makedirs("uploads/verification", exist_ok=True)
+    except Exception as _dir_err:
+        logger.warning(f"Skipped directory creation: {_dir_err}")
     
     # Verify database connection on startup with retry logic
     db_reachable = False

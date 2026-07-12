@@ -32,8 +32,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v2/chat", tags=["Chat V2"])
 
-UPLOAD_DIR = "uploads/chat"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+UPLOAD_DIR = "/tmp/uploads/chat" if os.getenv("VERCEL") == "1" else "uploads/chat"
+try:
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+except Exception as _dir_err:
+    logger.warning(f"Could not create upload directory: {_dir_err}")
 
 @router.post("/conversations", response_model=ChatConversationResponse)
 def get_or_create_conversation(

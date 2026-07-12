@@ -18,7 +18,7 @@ async function checkBackendHealth(): Promise<boolean> {
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
     const url = isLocalhost
-      ? 'http://localhost:8000/health'
+      ? 'http://localhost:8000/api/health'
       : '/api/health';
 
     const res = await fetch(url, {

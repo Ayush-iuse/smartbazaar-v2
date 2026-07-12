@@ -48,25 +48,25 @@ export default function DemoModeBanner() {
           transition={{ duration: 0.2, ease: 'easeInOut' }}
           className="overflow-hidden"
         >
-          <div className="bg-amber-500 text-amber-950 flex items-center justify-between px-4 py-2 text-[10px] font-black uppercase tracking-wider">
+          <div className="bg-red-500 text-red-950 flex items-center justify-between px-4 py-2 text-[10px] font-black uppercase tracking-wider">
             <div className="flex items-center gap-2">
               <WifiOff className="w-3.5 h-3.5 shrink-0 animate-pulse" />
               <span>
-                {t('common.demoMode')} — {t('common.demoWarning')}
+                Backend Connection Error — Real-time services are offline. Verify your local backend server is running.
               </span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={handleReconnect}
                 disabled={retrying}
-                className="flex items-center gap-1 px-2 py-1 bg-amber-950 text-amber-50 hover:bg-amber-900 transition-colors disabled:opacity-60"
+                className="flex items-center gap-1 px-2 py-1 bg-red-950 text-red-50 hover:bg-red-900 transition-colors disabled:opacity-60"
               >
                 <RefreshCw className={`w-3 h-3 ${retrying ? 'animate-spin' : ''}`} />
                 {retrying ? 'Reconnecting...' : t('common.retryConnection')}
               </button>
               <button
                 onClick={() => setDismissed(true)}
-                className="p-1 hover:bg-amber-400/40 transition-colors"
+                className="p-1 hover:bg-red-400/40 transition-colors"
                 title="Dismiss"
               >
                 <X className="w-3.5 h-3.5" />

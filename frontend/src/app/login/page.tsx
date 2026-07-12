@@ -30,32 +30,7 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router]);
 
-  const handleOfflineBypass = () => {
-    setIsLoading(true);
-    setError(null);
-    setSuccess('Authentication bypassed. Redirecting to demo workspace...');
-    
-    // Import and set global offline store status
-    try {
-      const { useOfflineStore } = require('../../lib/store');
-      useOfflineStore.getState().setIsOffline(true);
-    } catch (e) {
-      console.error(e);
-    }
 
-    setTimeout(() => {
-      login("mock-token-12345", {
-        id: 999,
-        email: "demo@smartbazaar.ai",
-        full_name: "Demo Seller & Buyer",
-        phone: "+91 99999 99999",
-        is_admin: true,
-        is_suspended: false,
-        created_at: new Date().toISOString()
-      });
-      router.push('/dashboard');
-    }, 1000);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,22 +207,7 @@ export default function LoginPage() {
             {isLoading ? 'Processing...' : activeTab === 'login' ? 'Sign In' : 'Create Account'}
           </Button>
 
-          {/* Offline Bypass Action */}
-          <div className="relative flex py-2 items-center">
-            <div className="flex-grow border-t border-border/60"></div>
-            <span className="flex-shrink mx-4 text-[10px] text-muted-foreground uppercase font-black tracking-widest">Or Sandbox</span>
-            <div className="flex-grow border-t border-border/60"></div>
-          </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleOfflineBypass}
-            disabled={isLoading}
-            className="w-full h-11 border-dashed hover:bg-muted text-[10px] font-black uppercase tracking-widest"
-          >
-            Explore Offline Demo Workspace
-          </Button>
         </form>
       </Card>
     </div>
