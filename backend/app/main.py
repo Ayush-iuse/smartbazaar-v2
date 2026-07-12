@@ -143,6 +143,28 @@ def debug_db():
         "vercel_env": os.getenv("VERCEL")
     }
 
+@app.get("/api/debug-register")
+def debug_register():
+    from backend.app.schemas.auth import UserCreate
+    from backend.app.services.auth_service import create_user
+    from backend.app.database import SessionLocal
+    import traceback
+    import random
+    
+    db = SessionLocal()
+    try:
+        user_in = UserCreate(
+            email=f"test{random.randint(1000, 9999)}@example.com",
+            password="Password123",
+            full_name="Test User"
+        )
+        user = create_user(db, user_in)
+        return {"status": "success", "user_id": user.id}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}
+    finally:
+        db.close()
+
 # CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
