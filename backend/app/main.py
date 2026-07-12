@@ -58,6 +58,8 @@ from sqlalchemy import text
 
 logger = logging.getLogger("uvicorn")
 
+startup_error = None
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
@@ -103,6 +105,8 @@ async def lifespan(app: FastAPI):
             from backend.app.seed import seed_database
             seed_database()
         except Exception as e:
+            global startup_error
+            startup_error = f"Migration/seeding failed: {str(e)}"
             logger.critical(f"Failed to run database migrations/seeding: {e}")
 
     import asyncio
@@ -116,6 +120,28 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+@app.get("/api/debug-db")
+def debug_db():
+    from sqlalchemy import text
+    db_status = "Unknown"
+    db_error = None
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        db_status = "Connected"
+    except Exception as e:
+        db_status = "Failed"
+        db_error = str(e)
+        
+    return {
+        "db_status": db_status,
+        "db_error": db_error,
+        "startup_error": startup_error,
+        "env_database_url": settings.DATABASE_URL.split("@")[-1] if settings.DATABASE_URL else None,
+        "app_env": settings.APP_ENV,
+        "vercel_env": os.getenv("VERCEL")
+    }
 
 # CORS middleware configuration
 app.add_middleware(
