@@ -104,6 +104,32 @@ async def lifespan(app: FastAPI):
             logger.info("Checking and seeding database if empty...")
             from backend.app.seed import seed_database
             seed_database()
+
+            # Reset database auto-increment sequences for PostgreSQL
+            try:
+                from backend.app.database import SessionLocal
+                db = SessionLocal()
+                if "postgresql" in str(db.bind.url):
+                    logger.info("Resetting PostgreSQL primary key sequences...")
+                    result = db.execute(text("""
+                        SELECT table_name, column_name 
+                        FROM information_schema.columns 
+                        WHERE table_schema = 'public' AND column_default LIKE 'nextval(%%';
+                    """))
+                    for row in result.fetchall():
+                        table = row[0]
+                        column = row[1]
+                        db.execute(text(f"""
+                            SELECT setval(
+                                pg_get_serial_sequence('{table}', '{column}'), 
+                                coalesce((SELECT max({column}) FROM {table}), 1)
+                            );
+                        """))
+                    db.commit()
+                    logger.info("PostgreSQL sequences reset successfully.")
+                db.close()
+            except Exception as seq_err:
+                logger.error(f"Failed to reset PostgreSQL sequences: {seq_err}")
         except Exception as e:
             global startup_error
             startup_error = f"Migration/seeding failed: {str(e)}"
