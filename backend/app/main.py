@@ -90,23 +90,20 @@ async def lifespan(app: FastAPI):
             "CRITICAL: Database is unreachable. Booting application in degraded mode."
         )
     else:
-        if os.getenv("VERCEL") or settings.APP_ENV == "production":
-            logger.info("Skipping database migrations on startup in serverless/production mode.")
-        else:
-            try:
-                logger.info("Running database migrations via Alembic...")
-                from alembic.config import Config
-                from alembic import command
-                alembic_ini_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../alembic.ini"))
-                alembic_cfg = Config(alembic_ini_path)
-                command.upgrade(alembic_cfg, "head")
-                logger.info("Database migrations applied successfully.")
-                
-                logger.info("Checking and seeding database if empty...")
-                from backend.app.seed import seed_database
-                seed_database()
-            except Exception as e:
-                logger.critical(f"Failed to run database migrations/seeding: {e}")
+        try:
+            logger.info("Running database migrations via Alembic...")
+            from alembic.config import Config
+            from alembic import command
+            alembic_ini_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../alembic.ini"))
+            alembic_cfg = Config(alembic_ini_path)
+            command.upgrade(alembic_cfg, "head")
+            logger.info("Database migrations applied successfully.")
+            
+            logger.info("Checking and seeding database if empty...")
+            from backend.app.seed import seed_database
+            seed_database()
+        except Exception as e:
+            logger.critical(f"Failed to run database migrations/seeding: {e}")
 
     import asyncio
     if not os.getenv("VERCEL") and settings.APP_ENV != "production":
